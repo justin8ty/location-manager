@@ -17,8 +17,6 @@ Full-stack app where authenticated users manage their own locations: add them ma
 | Upload | multer, fflate |
 | Tests | Vitest, Supertest |
 
-Deployment is not implemented.
-
 ## Pages and Navigation
 
 | Route | Access | Purpose |
