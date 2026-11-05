@@ -1,6 +1,8 @@
 # Location Manager
 
-Manage your own locations on an interactive map. Specification and design decisions: [SPEC.md](./SPEC.md).
+Manage your own locations on an interactive map: add them by hand or by uploading a ZIP file.
+
+Stack: React (Vite, TanStack Router + Query, Tailwind, react-leaflet), Express, PostgreSQL (Drizzle), JWT in an httpOnly cookie.
 
 ## Setup
 
@@ -8,10 +10,10 @@ Requires Node.js 24+, pnpm 12 and Docker.
 
 ```bash
 pnpm install
-cp .env.example .env     # set JWT_SECRET to random string
+cp .env.example .env     # set JWT_SECRET to a random string of 32+ characters
 docker compose up -d db
 pnpm db:migrate
-pnpm dev
+pnpm dev                 # http://localhost:5173
 ```
 
 Without Docker, create `locations` and `locations_test` databases on your own PostgreSQL server and point `DATABASE_URL` and `TEST_DATABASE_URL` in `.env` at them.
@@ -23,6 +25,8 @@ docker compose up -d --build
 pnpm db:migrate
 pnpm --filter ./client dev
 ```
+
+The container runs in production mode, so the session cookie is `Secure`. Chrome and Firefox accept it on `http://localhost`; Safari may not.
 
 ## Usage
 
@@ -38,3 +42,5 @@ pnpm test          # needs `docker compose up -d db`
 pnpm lint
 pnpm typecheck
 ```
+
+Specification and design decisions (ADRs): [SPEC.md](./SPEC.md).

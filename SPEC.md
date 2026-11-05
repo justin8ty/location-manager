@@ -9,16 +9,15 @@ Full-stack app where authenticated users manage their own locations: add them ma
 | Repo | pnpm workspaces: `client/`, `server/`, `packages/shared/` |
 | Frontend | Vite, React, TypeScript, TanStack Router, TanStack Query |
 | UI | Tailwind CSS, Kumo (`@cloudflare/kumo`) |
-| Map | Leaflet, react-leaflet |
+| Map | Leaflet, react-leaflet, OpenStreetMap tiles |
 | Backend | Node.js, Express, TypeScript, Drizzle ORM |
 | Database | PostgreSQL (Docker locally, Neon in production) |
 | Auth | JWT (`jose`) in httpOnly cookie, argon2id |
 | Validation | zod (schemas shared by client and server) |
 | Upload | multer, fflate |
 | Tests | Vitest, Supertest |
-| Server build | `tsx watch` in dev; `tsdown` bundles the server (including `packages/shared`) into a single JS output for production |
 
-Can optionally deploy to Cloudflare Pages (+ Pages Function proxy), Google Cloud Run, Neon.
+Deployment (not implemented): Cloudflare Pages (+Pages Function) proxying `/api/*` to Google Cloud Run (`API_ORIGIN`), and Neon for PostgreSQL.
 
 ## Pages and Navigation
 
@@ -174,7 +173,6 @@ Duplicate locations are allowed.
 
 ```text
 client/
-  functions/api/[[path]].ts   # Pages Function: proxy /api/* to Cloud Run
   src/
     routes/                   # TanStack Router file routes (_auth layout guards protected pages)
     features/auth|locations|upload/
@@ -204,7 +202,6 @@ docker-compose.yml            # postgres (+ server)
 | `JWT_SECRET` | server | random 32+ bytes |
 | `PORT` | server | `3000` |
 | `NODE_ENV` | server | `development` / `production` |
-| `API_ORIGIN` | Pages Function | `https://<service>.run.app` |
 
 In local development, Vite proxies `/api` to `http://localhost:3000`.
 
@@ -217,7 +214,7 @@ In local development, Vite proxies `/api` to `http://localhost:3000`.
 
 ## Deliverables
 
-- GitHub repo with README: setup (Docker and non-Docker), env vars, scripts, usage, sample ZIP, deployment notes, design decisions (link to ADRs below).
+- GitHub repo with README: setup (Docker and non-Docker), usage with the sample ZIP, and a link to design decisions.
 - Dockerised backend.
 
 ---
