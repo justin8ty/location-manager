@@ -17,7 +17,7 @@ Full-stack app where authenticated users manage their own locations: add them ma
 | Upload | multer, fflate |
 | Tests | Vitest, Supertest |
 
-Deployment (not implemented): Cloudflare Pages (+Pages Function) proxying `/api/*` to Google Cloud Run (`API_ORIGIN`), and Neon for PostgreSQL.
+Deployment is not implemented.
 
 ## Pages and Navigation
 
@@ -211,6 +211,17 @@ In local development, Vite proxies `/api` to `http://localhost:3000`.
 - Integration (Supertest + test DB): auth middleware (no cookie, bad token, sliding re-issue) and per-user scoping (user B can't list, edit, or delete user A's locations).
 - Test DB: a real PostgreSQL database `locations_test` on the Docker Postgres, created by `docker/postgres-init.sql`. Vitest `globalSetup` runs the Drizzle migrations once; tables are truncated between tests; test files run sequentially (`fileParallelism: false`).
 - Running: `docker compose up -d db`, then `pnpm test`.
+
+## Deployment (not implemented)
+
+To deploy: Cloudflare Pages (+ Pages Function) proxying `/api/*` to Google Cloud Run (`API_ORIGIN`), and Neon hosts PostgreSQL. Deploying would need these changes:
+
+- **Proxy:** `client/functions/api/[[path]].ts` forwards method, headers (incl. cookie) and body to `API_ORIGIN`, and sets `X-Forwarded-For` from `CF-Connecting-IP`.
+- **Client IP:** a `TRUST_PROXY` hop count (2: Cloudflare + Google) passed to `app.set("trust proxy", …)`. Without it every visitor shares one rate-limit bucket.
+- **Migrations:** run `DATABASE_URL=<neon url>?sslmode=require pnpm db:migrate` before each deploy.
+- **Shutdown:** on `SIGTERM`, stop accepting connections, finish in-flight requests, close the DB pool (Cloud Run allows ~10 s).
+- **Config:** Cloud Run sets `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV=production`, `TRUST_PROXY` (`PORT` is provided). Pages builds with `pnpm --filter ./client build` into `client/dist`, with `API_ORIGIN` set.
+- **Limit:** the rate limiter is in-memory, so it is per instance; more than one instance needs a shared store (e.g. Redis).
 
 ## Deliverables
 
