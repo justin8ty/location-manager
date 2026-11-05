@@ -1,6 +1,7 @@
 import type { HealthResponse } from "@location-manager/shared";
 import cookieParser from "cookie-parser";
 import express from "express";
+import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 
 export function createApp() {
   const app = express();
@@ -12,6 +13,9 @@ export function createApp() {
     const body: HealthResponse = { ok: true };
     res.json(body);
   });
+
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }
