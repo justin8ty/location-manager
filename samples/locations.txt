@@ -1,0 +1,8 @@
+Name, Latitude, Longitude
+Suria KLCC,3.157324409,101.7121981
+Zoo Negara,3.21054160,101.75920504
+Pavilion, Bukit Bintang,3.1490,101.7133
+Batu Caves,3.2379,101.6840
+Menara KL,3.1528,101.7038
+Merdeka Square,3.1478,101.6953
+Thean Hou Temple,3.1217,101.6870
