@@ -13,7 +13,9 @@ function HomePage() {
     queryKey: ["health"],
     queryFn: async () => {
       const res = await fetch("/api/health");
+
       if (!res.ok) throw new Error(`Health check failed (${res.status})`);
+
       return healthResponseSchema.parse(await res.json());
     },
   });
