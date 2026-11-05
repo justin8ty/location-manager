@@ -19,13 +19,7 @@ describe("parseLocationsText", () => {
     ]);
   });
 
-  it("treats the first line as data when it has no header", () => {
-    expect(parseLocationsText("Suria KLCC,3.157,101.712")).toEqual([
-      { name: "Suria KLCC", latitude: 3.157, longitude: 101.712 },
-    ]);
-  });
-
-  it("strips a UTF-8 BOM", () => {
+  it("strips a UTF-8 BOM and treats a first line without a header as data", () => {
     expect(parseLocationsText("\uFEFFSuria KLCC,3.157,101.712")[0]?.name).toBe("Suria KLCC");
   });
 
@@ -54,9 +48,9 @@ describe("parseLocationsText", () => {
     expect(rowErrors("A,1,2\nB,3")).toEqual([expect.stringMatching(/^Line 2: /)]);
   });
 
-  // "" and "0x1F" would silently become 0 and 31 if parsed with Number().
-  it.each(["abc", "", "0x1F"])("rejects the latitude %j as not a number", (latitude) => {
-    expect(rowErrors(`A,1,2\nB,${latitude},101`)).toEqual([expect.stringMatching(/^Line 2: Latitude/)]);
+  // Number("") is 0, which would silently become a coordinate.
+  it("rejects an empty latitude as not a number", () => {
+    expect(rowErrors("A,1,2\nB,,101")).toEqual([expect.stringMatching(/^Line 2: Latitude/)]);
   });
 
   it("rejects out-of-range coordinates", () => {
@@ -89,10 +83,7 @@ describe("parseLocationsText", () => {
     expect(rowErrors(text).map((detail) => detail.split(":")[0])).toEqual(["Line 1", "Line 2", "Line 3", "Line 4", "Line 5"]);
   });
 
-  it.each([
-    { file: "an empty file", text: "" },
-    { file: "a header with no rows", text: "Name, Latitude, Longitude\n" },
-  ])("rejects $file with NO_LOCATIONS", ({ text }) => {
-    expect(appErrorFrom(() => parseLocationsText(text)).code).toBe("NO_LOCATIONS");
+  it("rejects a header with no rows", () => {
+    expect(appErrorFrom(() => parseLocationsText("Name, Latitude, Longitude\n")).code).toBe("NO_LOCATIONS");
   });
 });

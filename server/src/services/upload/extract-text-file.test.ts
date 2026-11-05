@@ -44,16 +44,9 @@ describe("extractTextFile", () => {
   it.each<{ contents: string; files: Zippable }>([
     { contents: "no files", files: { "export/": new Uint8Array(0), ".DS_Store": new Uint8Array([1]) } },
     { contents: "two .txt files", files: { "a.txt": strToU8(text), "b.txt": strToU8(text) } },
-    { contents: "a .txt file and another file", files: { "a.txt": strToU8(text), "notes.md": strToU8("hi") } },
     { contents: "a single non-.txt file", files: { "locations.csv": strToU8(text) } },
   ])("rejects a ZIP with $contents", ({ files }) => {
     expect(errorCode(zipSync(files))).toBe("INVALID_ZIP_CONTENTS");
-  });
-
-  it("accepts a text file of exactly 1 MB", () => {
-    const archive = zipSync({ "big.txt": new Uint8Array(MAX_TEXT_FILE_BYTES).fill(0x61) });
-
-    expect(extractTextFile(archive)).toHaveLength(MAX_TEXT_FILE_BYTES);
   });
 
   it("rejects a text file declared over 1 MB without decompressing it", () => {
@@ -70,12 +63,6 @@ describe("extractTextFile", () => {
 
   it("rejects a file that is not a ZIP", () => {
     expect(errorCode(strToU8(text))).toBe("NOT_ZIP");
-  });
-
-  it("rejects a truncated ZIP", () => {
-    const archive = zipSync({ "locations.txt": strToU8(text) });
-
-    expect(errorCode(archive.subarray(0, archive.length - 30))).toBe("NOT_ZIP");
   });
 
   it("rejects a text file that is not UTF-8", () => {

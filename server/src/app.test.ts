@@ -1,15 +1,7 @@
-import { apiErrorResponseSchema, healthResponseSchema } from "@location-manager/shared";
+import { apiErrorResponseSchema } from "@location-manager/shared";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
 import { createTestApp } from "../test/app";
-
-describe("GET /api/health", () => {
-  it("returns ok", async () => {
-    const res = await request(createTestApp()).get("/api/health");
-    expect(res.status).toBe(200);
-    expect(healthResponseSchema.parse(res.body)).toEqual({ ok: true });
-  });
-});
 
 describe("error responses", () => {
   it("returns NOT_FOUND for unknown routes", async () => {

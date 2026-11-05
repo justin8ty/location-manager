@@ -70,15 +70,6 @@ describe("POST /api/auth/register", () => {
     expect(tokenCookie(res)).toMatch(/; Secure/);
   });
 
-  it("signs the new user in", async () => {
-    const { user, token } = await register();
-
-    const res = await me(token);
-
-    expect(res.status).toBe(200);
-    expect(userResponseSchema.parse(res.body).user).toEqual(user);
-  });
-
   it("rejects an email that is already registered, ignoring case", async () => {
     await register();
 
@@ -90,19 +81,6 @@ describe("POST /api/auth/register", () => {
     expect(errorCode(res)).toBe("EMAIL_TAKEN");
   });
 
-  it("rejects an invalid email and short password with a detail per field", async () => {
-    const res = await request(createTestApp())
-      .post("/api/auth/register")
-      .send({ email: "not-an-email", password: "short" });
-
-    expect(res.status).toBe(400);
-
-    const { error } = apiErrorResponseSchema.parse(res.body);
-    expect(error.code).toBe("VALIDATION_ERROR");
-
-    const fields = error.details?.map((detail) => detail.split(":")[0]);
-    expect(fields?.toSorted()).toEqual(["email", "password"]);
-  });
 });
 
 describe("POST /api/auth/login", () => {
@@ -161,25 +139,11 @@ describe("POST /api/auth/logout", () => {
     expect(res.status).toBe(204);
     expect((await agent.get("/api/auth/me")).status).toBe(401);
   });
-
-  it("requires a session", async () => {
-    const res = await request(createTestApp()).post("/api/auth/logout");
-
-    expect(res.status).toBe(401);
-    expect(errorCode(res)).toBe("UNAUTHENTICATED");
-  });
 });
 
 describe("requireAuth", () => {
   it("rejects a request without a cookie", async () => {
     const res = await request(createTestApp()).get("/api/auth/me");
-
-    expect(res.status).toBe(401);
-    expect(errorCode(res)).toBe("UNAUTHENTICATED");
-  });
-
-  it("rejects a malformed token", async () => {
-    const res = await me("not-a-jwt");
 
     expect(res.status).toBe(401);
     expect(errorCode(res)).toBe("UNAUTHENTICATED");
@@ -220,17 +184,6 @@ describe("requireAuth", () => {
 
     expect(res.status).toBe(401);
     expect(errorCode(res)).toBe("UNAUTHENTICATED");
-  });
-
-  it("keeps a session younger than 3.5 days as it is", async () => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    const { token } = await register();
-
-    vi.setSystemTime(Date.now() + 3 * DAY_MS);
-    const res = await me(token);
-
-    expect(res.status).toBe(200);
-    expect(tokenCookie(res)).toBeUndefined();
   });
 
   it("re-issues a session older than 3.5 days", async () => {

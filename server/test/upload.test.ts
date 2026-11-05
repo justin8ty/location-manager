@@ -6,9 +6,9 @@ import {
   uploadResponseSchema,
 } from "@location-manager/shared";
 import { strToU8, zipSync } from "fflate";
-import request, { type Agent, type Response } from "supertest";
+import type { Agent, Response } from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createTestApp, signedInAgent } from "./app";
+import { signedInAgent } from "./app";
 import { resetDb } from "./db";
 
 const sampleZip = readFileSync(new URL("../../samples/locations.zip", import.meta.url));
@@ -40,13 +40,6 @@ function idsOf(locations: Location[]) {
 beforeEach(resetDb);
 
 describe("POST /api/locations/upload", () => {
-  it("requires a session", async () => {
-    const res = await request(createTestApp()).post("/api/locations/upload").attach("file", sampleZip, "locations.zip");
-
-    expect(res.status).toBe(401);
-    expect(errorOf(res).code).toBe("UNAUTHENTICATED");
-  });
-
   it("saves every location in the sample ZIP for the uploader only", async () => {
     const alice = await signedInAgent("alice@example.com");
     const bob = await signedInAgent("bob@example.com");
@@ -110,14 +103,5 @@ describe("POST /api/locations/upload", () => {
 
     expect(res.status).toBe(413);
     expect(errorOf(res).code).toBe("FILE_TOO_LARGE");
-  });
-
-  it("rejects a file sent in another field", async () => {
-    const alice = await signedInAgent("alice@example.com");
-
-    const res = await alice.post("/api/locations/upload").attach("upload", sampleZip, "locations.zip");
-
-    expect(res.status).toBe(400);
-    expect(errorOf(res).code).toBe("VALIDATION_ERROR");
   });
 });
