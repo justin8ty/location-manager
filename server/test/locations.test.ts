@@ -40,6 +40,7 @@ describe("locations API", () => {
     const responses = await Promise.all([
       request(app).get("/api/locations"),
       request(app).post("/api/locations").send(klcc),
+      request(app).patch("/api/locations/00000000-0000-4000-8000-000000000000").send({ name: "Renamed" }),
       request(app).delete("/api/locations/00000000-0000-4000-8000-000000000000"),
     ]);
 
@@ -62,6 +63,29 @@ describe("locations API", () => {
     const alice = await signedInAgent("alice@example.com");
 
     const res = await alice.post("/api/locations").send({ ...klcc, latitude: "3.15" });
+
+    expect(res.status).toBe(400);
+    expect(errorOf(res).code).toBe("VALIDATION_ERROR");
+  });
+
+  it("updates only the given fields of a location", async () => {
+    const alice = await signedInAgent("alice@example.com");
+    const original = await addLocation(alice, klcc);
+
+    const res = await alice.patch(`/api/locations/${original.id}`).send({ name: "  KLCC Park  " });
+
+    expect(res.status).toBe(200);
+
+    const updated = { ...original, name: "KLCC Park" };
+    expect(locationResponseSchema.parse(res.body).location).toEqual(updated);
+    expect(await listLocations(alice)).toEqual([updated]);
+  });
+
+  it("rejects an update with no fields", async () => {
+    const alice = await signedInAgent("alice@example.com");
+    const original = await addLocation(alice, klcc);
+
+    const res = await alice.patch(`/api/locations/${original.id}`).send({});
 
     expect(res.status).toBe(400);
     expect(errorOf(res).code).toBe("VALIDATION_ERROR");
@@ -115,6 +139,18 @@ describe("per-user scoping", () => {
 
     expect(await listLocations(bob)).toEqual([bobsLocation]);
     expect(await listLocations(alice)).toEqual([]);
+  });
+
+  it("answers 404 when editing another user's location and leaves it unchanged", async () => {
+    const alice = await signedInAgent("alice@example.com");
+    const bob = await signedInAgent("bob@example.com");
+    const alicesLocation = await addLocation(alice, klcc);
+
+    const res = await bob.patch(`/api/locations/${alicesLocation.id}`).send({ name: "Bob was here" });
+
+    expect(res.status).toBe(404);
+    expect(errorOf(res).code).toBe("NOT_FOUND");
+    expect(await listLocations(alice)).toEqual([alicesLocation]);
   });
 
   it("answers 404 when deleting another user's location and keeps it", async () => {

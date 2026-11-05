@@ -1,6 +1,6 @@
 import { Button } from "@cloudflare/kumo";
 import type { Location } from "@location-manager/shared";
-import { TrashIcon } from "@phosphor-icons/react";
+import { PencilSimpleIcon, TrashIcon } from "@phosphor-icons/react";
 import {
   type DivIconOptions,
   divIcon,
@@ -104,17 +104,22 @@ function PickOnClick({ onPick }: { onPick: (latitude: number, longitude: number)
   return null;
 }
 
+/** A request to fly to a location. Each request is a new object, so the same location can be flown to again. */
+export interface FocusRequest {
+  locationId: string;
+}
+
 interface FlyToLocationProps {
-  locationId: string | null;
+  focus: FocusRequest | null;
   markers: RefObject<Map<string, LeafletMarker>>;
 }
 
 /** Flies to the location's marker, then opens its popup (opening it mid-flight would cancel the flight). */
-function FlyToLocation({ locationId, markers }: FlyToLocationProps) {
+function FlyToLocation({ focus, markers }: FlyToLocationProps) {
   const map = useMap();
 
   useEffect(() => {
-    const marker = locationId === null ? undefined : markers.current.get(locationId);
+    const marker = focus === null ? undefined : markers.current.get(focus.locationId);
 
     if (!marker) return;
 
@@ -128,17 +133,26 @@ function FlyToLocation({ locationId, markers }: FlyToLocationProps) {
     return () => {
       map.off("moveend", openPopup);
     };
-  }, [map, locationId, markers]);
+  }, [map, focus, markers]);
 
   return null;
 }
 
 interface LocationPopupProps {
   location: Location;
+  onEdit: (location: Location) => void;
   onDelete: (location: Location) => void;
 }
 
-function LocationPopup({ location, onDelete }: LocationPopupProps) {
+function LocationPopup({ location, onEdit, onDelete }: LocationPopupProps) {
+  const map = useMap();
+
+  function edit() {
+    // The form takes over; the popup would only cover the spot being edited.
+    map.closePopup();
+    onEdit(location);
+  }
+
   return (
     <div className="flex min-w-44 flex-col gap-3">
       <div className="flex flex-col gap-0.5">
@@ -147,28 +161,28 @@ function LocationPopup({ location, onDelete }: LocationPopupProps) {
           {formatCoordinate(location.latitude)}, {formatCoordinate(location.longitude)}
         </span>
       </div>
-      <Button
-        size="sm"
-        variant="secondary-destructive"
-        icon={TrashIcon}
-        className="self-start"
-        onClick={() => onDelete(location)}
-      >
-        Delete
-      </Button>
+      <div className="flex gap-2">
+        <Button size="sm" icon={PencilSimpleIcon} onClick={edit}>
+          Edit
+        </Button>
+        <Button size="sm" variant="secondary-destructive" icon={TrashIcon} onClick={() => onDelete(location)}>
+          Delete
+        </Button>
+      </div>
     </div>
   );
 }
 
 interface LocationMapProps {
   locations: Location[];
-  /** Where the location being added would go, shown as a faded pin. */
+  /** Where the location being added or moved would go, shown as a faded pin. */
   preview: LatLngTuple | null;
-  /** The location to fly to and open, e.g. one just added. */
-  focusedId: string | null;
+  /** The location to fly to and open, e.g. one just added or saved. */
+  focus: FocusRequest | null;
   /** Width in px of the map's left edge covered by other UI, kept clear when fitting markers. */
   leftInset: number;
   onPick: (latitude: number, longitude: number) => void;
+  onEdit: (location: Location) => void;
   onDelete: (location: Location) => void;
 }
 
@@ -186,11 +200,12 @@ export function LocationMap(props: LocationMapProps) {
       />
       <ZoomControl position="bottomright" />
       <PickOnClick onPick={props.onPick} />
-      <FlyToLocation locationId={props.focusedId} markers={markers} />
+      <FlyToLocation focus={props.focus} markers={markers} />
 
       {props.locations.map((location) => (
         <Marker
-          key={location.id}
+          // Leaflet sets a marker's title only when creating it, so a rename re-creates the marker.
+          key={`${location.id}:${location.name}`}
           position={toLatLng(location)}
           icon={locationPin}
           title={location.name}
@@ -205,7 +220,7 @@ export function LocationMap(props: LocationMapProps) {
           }}
         >
           <Popup>
-            <LocationPopup location={location} onDelete={props.onDelete} />
+            <LocationPopup location={location} onEdit={props.onEdit} onDelete={props.onDelete} />
           </Popup>
         </Marker>
       ))}

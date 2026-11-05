@@ -3,6 +3,7 @@ import {
   type LocationResponse,
   type LocationsResponse,
   type UploadResponse,
+  updateLocationRequestSchema,
 } from "@location-manager/shared";
 import { type Request, Router } from "express";
 import { z } from "zod";
@@ -10,7 +11,7 @@ import type { Db } from "../db";
 import { AppError } from "../errors";
 import { authenticatedUserId, requireAuth } from "../middleware/require-auth";
 import { receiveZip, uploadedZip } from "../middleware/zip-upload";
-import { createLocation, createLocations, deleteLocation, listLocations } from "../services/locations";
+import { createLocation, createLocations, deleteLocation, listLocations, updateLocation } from "../services/locations";
 import type { Sessions } from "../services/session";
 import { extractTextFile } from "../services/upload/extract-text-file";
 import { parseLocationsText } from "../services/upload/parse-locations";
@@ -47,6 +48,13 @@ export function createLocationsRouter(db: Db, sessions: Sessions) {
     const locations = await createLocations(db, authenticatedUserId(req), inputs);
     const body: UploadResponse = { count: locations.length, locations };
     res.status(201).json(body);
+  });
+
+  router.patch("/:id", async (req, res) => {
+    const id = locationIdParam(req);
+    const changes = parseBody(req, updateLocationRequestSchema);
+    const body: LocationResponse = { location: await updateLocation(db, authenticatedUserId(req), id, changes) };
+    res.json(body);
   });
 
   router.delete("/:id", async (req, res) => {

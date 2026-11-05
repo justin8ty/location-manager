@@ -1,4 +1,11 @@
-import { createLocationRequestSchema, latitudeSchema, longitudeSchema } from "@location-manager/shared";
+import {
+  type CreateLocationRequest,
+  createLocationRequestSchema,
+  type Location,
+  latitudeSchema,
+  longitudeSchema,
+  type UpdateLocationRequest,
+} from "@location-manager/shared";
 import type { LatLngTuple } from "leaflet";
 import { z } from "zod";
 
@@ -12,6 +19,24 @@ export interface LocationDraft {
 export type DraftErrors = Partial<Record<keyof LocationDraft, string>>;
 
 export const EMPTY_DRAFT: LocationDraft = { name: "", latitude: "", longitude: "" };
+
+/** A saved location as form fields. Coordinates keep their full precision, so saving unchanged fields changes nothing. */
+export function draftFromLocation(location: Location): LocationDraft {
+  return { name: location.name, latitude: String(location.latitude), longitude: String(location.longitude) };
+}
+
+/** The fields of `input` that differ from the saved location, or null when nothing changed. */
+export function locationChanges(location: Location, input: CreateLocationRequest): UpdateLocationRequest | null {
+  const changes: UpdateLocationRequest = {};
+
+  if (input.name !== location.name) changes.name = input.name;
+
+  if (input.latitude !== location.latitude) changes.latitude = input.latitude;
+
+  if (input.longitude !== location.longitude) changes.longitude = input.longitude;
+
+  return Object.keys(changes).length > 0 ? changes : null;
+}
 
 // An empty field is missing, not zero.
 function parseNumber(text: string): number | undefined {

@@ -1,27 +1,50 @@
 import { Banner, Button, Input } from "@cloudflare/kumo";
 import type { Location } from "@location-manager/shared";
-import { PlusIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { CheckIcon, PlusIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { type FormEvent, type Ref, useState } from "react";
-import { type DraftErrors, draftErrors, EMPTY_DRAFT, type LocationDraft, parseDraft } from "./location-draft";
-import { useCreateLocation } from "./queries";
+import {
+  type DraftErrors,
+  draftErrors,
+  EMPTY_DRAFT,
+  type LocationDraft,
+  locationChanges,
+  parseDraft,
+} from "./location-draft";
+import { useCreateLocation, useUpdateLocation } from "./queries";
 
 interface LocationFormProps {
   draft: LocationDraft;
   onDraftChange: (draft: LocationDraft) => void;
-  onCreated: (location: Location) => void;
+  /** The location being edited, or null to add a new one. */
+  editing: Location | null;
+  /** Called with the location that was added or updated. */
+  onSaved: (location: Location) => void;
+  onCancelEdit: () => void;
   nameInputRef: Ref<HTMLInputElement>;
 }
 
-/** Adds a location. The draft is owned by the page, so clicking the map can fill in coordinates. */
-export function LocationForm({ draft, onDraftChange, onCreated, nameInputRef }: LocationFormProps) {
+/**
+ * Adds a location, or edits one. The draft is owned by the page, so clicking the map can fill in
+ * coordinates in either mode. Key it by the edited location so switching resets errors.
+ */
+export function LocationForm(props: LocationFormProps) {
+  const { draft, editing } = props;
   const creation = useCreateLocation();
+  const update = useUpdateLocation();
   // Errors appear after the first submit, then track the fields as they are corrected (typed or picked).
   const [submitted, setSubmitted] = useState(false);
   const errors: DraftErrors = submitted ? draftErrors(draft) : {};
+  const saving = creation.isPending || update.isPending;
+  const requestError = editing ? update.error : creation.error;
   const isEmpty = draft.name === "" && draft.latitude === "" && draft.longitude === "";
 
-  function update(field: keyof LocationDraft, value: string) {
-    onDraftChange({ ...draft, [field]: value });
+  function setField(field: keyof LocationDraft, value: string) {
+    props.onDraftChange({ ...draft, [field]: value });
+  }
+
+  function saved(location: Location) {
+    setSubmitted(false);
+    props.onSaved(location);
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -31,38 +54,37 @@ export function LocationForm({ draft, onDraftChange, onCreated, nameInputRef }: 
 
     if (!result.success) return;
 
-    creation.mutate(result.data, {
-      onSuccess: (location) => {
-        setSubmitted(false);
-        onCreated(location);
-      },
-    });
+    if (!editing) {
+      creation.mutate(result.data, { onSuccess: saved });
+
+      return;
+    }
+
+    const changes = locationChanges(editing, result.data);
+
+    if (changes) update.mutate({ id: editing.id, changes }, { onSuccess: saved });
+    else saved(editing);
   }
 
   function clear() {
     setSubmitted(false);
     creation.reset();
-    onDraftChange(EMPTY_DRAFT);
+    props.onDraftChange(EMPTY_DRAFT);
   }
 
   return (
     <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
-      {creation.error && (
-        <Banner
-          variant="error"
-          size="sm"
-          icon={<WarningCircleIcon weight="fill" />}
-          description={creation.error.message}
-        />
+      {requestError && (
+        <Banner variant="error" size="sm" icon={<WarningCircleIcon weight="fill" />} description={requestError.message} />
       )}
 
       <Input
-        ref={nameInputRef}
+        ref={props.nameInputRef}
         label="Name"
         placeholder="Suria KLCC"
         autoComplete="off"
         value={draft.name}
-        onValueChange={(value) => update("name", value)}
+        onValueChange={(value) => setField("name", value)}
         error={errors.name}
       />
 
@@ -74,7 +96,7 @@ export function LocationForm({ draft, onDraftChange, onCreated, nameInputRef }: 
           spellCheck={false}
           className="w-full tabular-nums"
           value={draft.latitude}
-          onValueChange={(value) => update("latitude", value)}
+          onValueChange={(value) => setField("latitude", value)}
           error={errors.latitude}
         />
         <Input
@@ -84,19 +106,32 @@ export function LocationForm({ draft, onDraftChange, onCreated, nameInputRef }: 
           spellCheck={false}
           className="w-full tabular-nums"
           value={draft.longitude}
-          onValueChange={(value) => update("longitude", value)}
+          onValueChange={(value) => setField("longitude", value)}
           error={errors.longitude}
         />
       </div>
 
       <div className="flex items-center gap-2">
-        <Button type="submit" variant="primary" icon={PlusIcon} loading={creation.isPending}>
-          Add
-        </Button>
-        {!isEmpty && (
-          <Button variant="ghost" onClick={clear} disabled={creation.isPending}>
-            Clear
-          </Button>
+        {editing ? (
+          <>
+            <Button type="submit" variant="primary" icon={CheckIcon} loading={saving}>
+              Save
+            </Button>
+            <Button variant="ghost" onClick={props.onCancelEdit} disabled={saving}>
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button type="submit" variant="primary" icon={PlusIcon} loading={saving}>
+              Add
+            </Button>
+            {!isEmpty && (
+              <Button variant="ghost" onClick={clear} disabled={saving}>
+                Clear
+              </Button>
+            )}
+          </>
         )}
       </div>
     </form>

@@ -8,9 +8,10 @@ interface DeleteLocationDialogProps {
   /** The location to confirm deleting; null closes the dialog. */
   location: Location | null;
   onClose: () => void;
+  onDeleted: (location: Location) => void;
 }
 
-export function DeleteLocationDialog({ location, onClose }: DeleteLocationDialogProps) {
+export function DeleteLocationDialog({ location, onClose, onDeleted }: DeleteLocationDialogProps) {
   const deletion = useDeleteLocation();
   // Keeps the name on screen while the dialog animates out after `location` becomes null.
   const [shown, setShown] = useState(location);
@@ -27,7 +28,13 @@ export function DeleteLocationDialog({ location, onClose }: DeleteLocationDialog
   function confirm() {
     if (!shown) return;
 
-    deletion.mutate(shown.id, { onSuccess: () => handleOpenChange(false) });
+    const deleted = shown;
+    deletion.mutate(deleted.id, {
+      onSuccess: () => {
+        handleOpenChange(false);
+        onDeleted(deleted);
+      },
+    });
   }
 
   return (

@@ -1,4 +1,4 @@
-import type { CreateLocationRequest, Location } from "@location-manager/shared";
+import type { CreateLocationRequest, Location, UpdateLocationRequest } from "@location-manager/shared";
 import { and, asc, eq } from "drizzle-orm";
 import type { Db } from "../db";
 import { locations } from "../db/schema";
@@ -60,6 +60,24 @@ export async function createLocations(
 
     return created;
   });
+}
+
+/** Updates the given fields of one of the user's locations. Throws NOT_FOUND if it doesn't exist or belongs to someone else. */
+export async function updateLocation(
+  db: Db,
+  userId: string,
+  id: string,
+  changes: UpdateLocationRequest,
+): Promise<Location> {
+  const [row] = await db
+    .update(locations)
+    .set(changes)
+    .where(and(eq(locations.id, id), eq(locations.userId, userId)))
+    .returning(locationColumns);
+
+  if (!row) throw new AppError("NOT_FOUND", "Location not found");
+
+  return toLocation(row);
 }
 
 /** Deletes one of the user's locations. Throws NOT_FOUND if it doesn't exist or belongs to someone else. */

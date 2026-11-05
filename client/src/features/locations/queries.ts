@@ -2,6 +2,7 @@ import {
   type CreateLocationRequest,
   locationResponseSchema,
   locationsResponseSchema,
+  type UpdateLocationRequest,
 } from "@location-manager/shared";
 import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiRequest, apiRequestNoContent } from "../../lib/api";
@@ -22,6 +23,24 @@ export function useCreateLocation() {
       (await apiRequest("POST", "/locations", locationResponseSchema, input)).location,
     onSuccess: (location) =>
       queryClient.setQueryData(locationsQuery.queryKey, (locations) => locations?.concat(location)),
+  });
+}
+
+interface LocationUpdate {
+  id: string;
+  changes: UpdateLocationRequest;
+}
+
+export function useUpdateLocation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, changes }: LocationUpdate) =>
+      (await apiRequest("PATCH", `/locations/${id}`, locationResponseSchema, changes)).location,
+    onSuccess: (updated) =>
+      queryClient.setQueryData(locationsQuery.queryKey, (locations) =>
+        locations?.map((location) => (location.id === updated.id ? updated : location)),
+      ),
   });
 }
 
