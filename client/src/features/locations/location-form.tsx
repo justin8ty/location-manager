@@ -66,7 +66,7 @@ export function LocationForm({ draft, onDraftChange, onCreated, nameInputRef }: 
         error={errors.name}
       />
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 items-start gap-3">
         <Input
           label="Latitude"
           placeholder="3.157324"
