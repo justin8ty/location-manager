@@ -12,10 +12,11 @@ Full-stack app where authenticated users manage their own locations: add them ma
 | Map | Leaflet, react-leaflet |
 | Backend | Node.js, Express, TypeScript, Drizzle ORM |
 | Database | PostgreSQL (Docker locally, Neon in production) |
-| Auth | JWT in httpOnly cookie, argon2id |
+| Auth | JWT (`jose`) in httpOnly cookie, argon2id |
 | Validation | zod (schemas shared by client and server) |
 | Upload | multer, fflate |
 | Tests | Vitest, Supertest |
+| Server build | `tsx watch` in dev; `tsdown` bundles the server (including `packages/shared`) into a single JS output for production |
 
 Can optionally deploy to Cloudflare Pages (+ Pages Function proxy), Google Cloud Run, Neon.
 
@@ -64,7 +65,7 @@ Can optionally deploy to Cloudflare Pages (+ Pages Function proxy), Google Cloud
 ### File Upload
 
 - Accepts one `.zip` file, max 5 MB.
-- The ZIP must contain exactly one `.txt` file after ignoring `__MACOSX/` entries and `.DS_Store`. The file may sit in a subfolder.
+- After ignoring directory entries, `__MACOSX/` entries and `.DS_Store` files, the ZIP must contain exactly one file, and it must have a `.txt` extension. Any other file alongside it is an error. The file may sit in a subfolder.
 - Text file: UTF-8, max 1 MB uncompressed. The size is checked from entry metadata before decompressing (zip-bomb guard).
 - On success: success toast for 3 s, then the locations query is invalidated so the markers appear on the map. The toast offers a "View on map" link.
 - On any error: error toast for 3 s with the reason.
@@ -82,7 +83,8 @@ Parsing rules:
 
 | Case | Behaviour |
 | --- | --- |
-| Header row | Optional. Line 1 is skipped if its last two fields aren't numbers |
+| UTF-8 BOM | Stripped before parsing |
+| Header row | Optional. The first non-blank line is skipped if its last two fields aren't numbers |
 | Whitespace around fields | Trimmed |
 | Blank lines, `\r\n` line endings | Ignored / normalised |
 | Name contains commas (`Pavilion, Bukit Bintang,3.149,101.713`) | The last two fields are lat/lng; the rest (rejoined) is the name |
@@ -91,7 +93,7 @@ Parsing rules:
 | Empty name or name > 100 chars | Row error |
 | No data rows | Error `NO_LOCATIONS` |
 
-Row errors are reported with line numbers (first 5 shown), e.g. `Line 3: latitude 300 is out of range (−90 to 90)`.
+Row errors are reported with line numbers from the original file (blank and header lines still count; first 5 shown), e.g. `Line 3: latitude 300 is out of range (−90 to 90)`.
 
 ### Loading and Error States
 
@@ -112,7 +114,7 @@ Base path `/api`. JSON unless noted. Every route except register/login requires 
 | GET | `/auth/me` | — | `200 { user }` |
 | GET | `/locations` | — | `200 { locations }` |
 | POST | `/locations` | `{ name, latitude, longitude }` | `201 { location }` |
-| PATCH | `/locations/:id` | `{ name?, latitude?, longitude? }` | `200 { location }` |
+| PATCH | `/locations/:id` | `{ name?, latitude?, longitude? }` (at least one field) | `200 { location }` |
 | DELETE | `/locations/:id` | — | `204` |
 | POST | `/locations/upload` | multipart, field `file` | `201 { count, locations }` |
 | GET | `/health` | — | `200 { ok: true }` |
@@ -189,6 +191,7 @@ server/
     services/upload/          # zip extraction + txt parser (pure, unit-tested)
   Dockerfile
 packages/shared/              # zod schemas + inferred types
+docker/postgres-init.sql      # creates the locations_test database
 docker-compose.yml            # postgres (+ server)
 ```
 
@@ -197,6 +200,7 @@ docker-compose.yml            # postgres (+ server)
 | Var | Where | Example |
 | --- | --- | --- |
 | `DATABASE_URL` | server | `postgresql://postgres:postgres@localhost:5432/locations` |
+| `TEST_DATABASE_URL` | server tests | `postgresql://postgres:postgres@localhost:5432/locations_test` |
 | `JWT_SECRET` | server | random 32+ bytes |
 | `PORT` | server | `3000` |
 | `NODE_ENV` | server | `development` / `production` |
@@ -208,6 +212,8 @@ In local development, Vite proxies `/api` to `http://localhost:3000`.
 
 - Unit: TXT parser (every case in the parsing rules table) and ZIP validation (zero, two, or non-txt files; `__MACOSX` ignored; oversize).
 - Integration (Supertest + test DB): auth middleware (no cookie, bad token, sliding re-issue) and per-user scoping (user B can't list, edit, or delete user A's locations).
+- Test DB: a real PostgreSQL database `locations_test` on the Docker Postgres, created by `docker/postgres-init.sql`. Vitest `globalSetup` runs the Drizzle migrations once; tables are truncated between tests; test files run sequentially (`fileParallelism: false`).
+- Running: `docker compose up -d db`, then `pnpm test`.
 
 ## Deliverables
 
@@ -256,3 +262,8 @@ In local development, Vite proxies `/api` to `http://localhost:3000`.
 - **Decision:** Header optional, fields trimmed, blank lines and CRLF tolerated. The last two fields are lat/lng, so names may contain commas.
 - **Why:** Real-world files are messy, and names like "Pavilion, Bukit Bintang" are common.
 - **Trade-off:** A malformed row can be read as a name with commas; range and number validation catches most such cases.
+
+### ADR-9: Real PostgreSQL for integration tests
+- **Decision:** Integration tests run against a `locations_test` database on the Docker Postgres, not an in-process substitute (PGlite).
+- **Why:** Tests exercise the production driver (`node-postgres`), transactions and error codes. No test-only driver seam. Docker is already required to run the app.
+- **Trade-off:** `pnpm test` needs the Postgres container running.
