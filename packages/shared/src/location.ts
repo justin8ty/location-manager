@@ -7,12 +7,12 @@ export const locationNameSchema = z
   .max(100, "Name must be at most 100 characters");
 
 export const latitudeSchema = z
-  .number({ error: "Latitude must be a number" })
+  .number({ error: (issue) => (issue.input === undefined ? "Latitude is required" : "Latitude must be a number") })
   .min(-90, "Latitude must be between -90 and 90")
   .max(90, "Latitude must be between -90 and 90");
 
 export const longitudeSchema = z
-  .number({ error: "Longitude must be a number" })
+  .number({ error: (issue) => (issue.input === undefined ? "Longitude is required" : "Longitude must be a number") })
   .min(-180, "Longitude must be between -180 and 180")
   .max(180, "Longitude must be between -180 and 180");
 

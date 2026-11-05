@@ -1,3 +1,29 @@
 @source "../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
 @import "@cloudflare/kumo/styles/tailwind";
 @import "tailwindcss";
+
+/*
+ * Leaflet's stylesheet is unlayered, so it beats Tailwind's layered utilities.
+ * These overrides are unlayered too.
+ */
+.leaflet-container {
+  font: inherit;
+}
+
+/* Clicking the map picks coordinates, so the resting cursor aims rather than grabs. */
+.location-map.leaflet-grab {
+  cursor: crosshair;
+}
+
+.leaflet-dragging .location-map.leaflet-grab {
+  cursor: grabbing;
+}
+
+/* Muted tiles let the brand-coloured pins and the UI carry the colour. */
+.location-map .leaflet-tile-pane {
+  filter: saturate(0.45);
+}
+
+.location-map .leaflet-popup-content {
+  margin: 14px 16px;
+}
