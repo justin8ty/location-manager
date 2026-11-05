@@ -4,6 +4,7 @@ import express from "express";
 import type { Db } from "./db";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler";
 import { createAuthRouter } from "./routes/auth";
+import { createLocationsRouter } from "./routes/locations";
 import { createSessions } from "./services/session";
 
 export interface AppDeps {
@@ -27,6 +28,7 @@ export function createApp(deps: AppDeps) {
   });
 
   app.use("/api/auth", createAuthRouter(deps.db, sessions));
+  app.use("/api/locations", createLocationsRouter(deps.db, sessions));
 
   app.use(notFoundHandler);
   app.use(errorHandler);
