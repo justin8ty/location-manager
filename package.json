@@ -11,7 +11,12 @@
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
+    "lint": "oxlint",
     "db:generate": "pnpm --filter ./server db:generate",
     "db:migrate": "pnpm --filter ./server db:migrate"
+  },
+  "devDependencies": {
+    "@oxlint/plugins": "1.91.0",
+    "oxlint": "1.91.0"
   }
 }
