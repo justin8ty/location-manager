@@ -12,6 +12,9 @@ const locationColumns = {
   createdAt: locations.createdAt,
 };
 
+// Each row binds 4 parameters; PostgreSQL allows 65535 per statement.
+const INSERT_BATCH_SIZE = 1000;
+
 type StoredLocation = Omit<Location, "createdAt"> & { createdAt: Date };
 
 function toLocation(stored: StoredLocation): Location {
@@ -38,6 +41,25 @@ export async function createLocation(db: Db, userId: string, input: CreateLocati
   if (!row) throw new Error("Location insert returned no row");
 
   return toLocation(row);
+}
+
+/** Saves all the locations in one transaction: either every one is saved or none is. */
+export async function createLocations(
+  db: Db,
+  userId: string,
+  inputs: CreateLocationRequest[],
+): Promise<Location[]> {
+  return db.transaction(async (tx) => {
+    const created: Location[] = [];
+
+    for (let start = 0; start < inputs.length; start += INSERT_BATCH_SIZE) {
+      const batch = inputs.slice(start, start + INSERT_BATCH_SIZE).map((input) => ({ ...input, userId }));
+      const rows = await tx.insert(locations).values(batch).returning(locationColumns);
+      created.push(...rows.map(toLocation));
+    }
+
+    return created;
+  });
 }
 
 /** Deletes one of the user's locations. Throws NOT_FOUND if it doesn't exist or belongs to someone else. */
