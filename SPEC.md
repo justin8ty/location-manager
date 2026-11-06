@@ -51,7 +51,7 @@ Full-stack app where authenticated users manage their own locations: add them ma
 ### Map
 
 - Form fields: name (1–100 chars, trimmed), latitude (−90..90), longitude (−180..180), icon (optional).
-- Icon: one of `pin`, `home`, `work`, `food`, `cafe`, `shop`, `park`, `nature`, `animals`, `temple`, `mosque`, `landmark`. When a location is created without one, the server sets `suggestLocationIcon(name)` (shared package; rules in `DESIGN.md` → Icons), which falls back to `pin`. Renaming doesn't change the icon.
+- Icon: one of `pin`, `home`, `work`, `food`, `cafe`, `shop`, `park`, `nature`, `animals`, `temple`, `mosque`, `landmark`. If omitted on create, the server uses `suggestLocationIcon(name)` (rules in `DESIGN.md`). Renaming keeps the icon.
 - On submit the marker appears without a page reload. The map flies to it and opens its popup.
 - Clicking an empty map spot fills the latitude/longitude fields and shows a faded preview marker.
 - Clicking a marker shows a popup with the name, an edit button, and a delete button. Delete asks for confirmation in a dialog.
@@ -68,7 +68,7 @@ Full-stack app where authenticated users manage their own locations: add them ma
 - On success: success toast for 3 s, then the locations query is invalidated so the markers appear on the map. The toast offers a "View on map" link.
 - On any error: error toast for 3 s with the reason.
 - Upload is all-or-nothing. Any invalid row rejects the whole file and nothing is saved.
-- Each uploaded location gets the icon suggested by its name. The TXT format has no icon field.
+- Uploaded locations get the icon suggested by their name.
 
 #### TXT Format
 
@@ -168,7 +168,7 @@ export const locations = pgTable(
 );
 ```
 
-Duplicate locations are allowed. `icon` is validated by the shared zod enum, not a database constraint, so adding an icon needs no migration. Rows that existed before the column was added have `pin`.
+Duplicate locations are allowed. `icon` is validated by the shared zod enum, not the database, so adding an icon needs no migration.
 
 ## Project Structure
 
@@ -208,7 +208,7 @@ In local development, Vite proxies `/api` to `http://localhost:3000`.
 
 ## Testing
 
-- Unit: TXT parser (every case in the parsing rules table), ZIP validation (zero, two, or non-txt files; `__MACOSX` ignored; oversize), and icon suggestion (rule order, word matching).
+- Unit: TXT parser (every case in the parsing rules table), ZIP validation (zero, two, or non-txt files; `__MACOSX` ignored; oversize), and icon suggestion.
 - Integration (Supertest + test DB): auth middleware (no cookie, bad token, sliding re-issue) and per-user scoping (user B can't list, edit, or delete user A's locations).
 - Test DB: a real PostgreSQL database `locations_test` on the Docker Postgres, created by `docker/postgres-init.sql`. Vitest `globalSetup` runs the Drizzle migrations once; tables are truncated between tests; test files run sequentially (`fileParallelism: false`).
 - Running: `docker compose up -d db`, then `pnpm test`.

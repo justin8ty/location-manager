@@ -330,7 +330,7 @@ Initial view: fit to all pins, or KL at zoom 11 when there are none (as in the s
   - a keyword must match at the start of a word, so `aquari` matches "Aquaria KLCC";
   - `wat` and `eat` must match a whole word, so "Water Park" and "Great Eastern" don't match them;
   - no match gives `pin`.
-- **Shared code:** `packages/shared/src/location-icon.ts` exports `locationIconSchema` and `suggestLocationIcon(name)`. The backend is done (column, API, upload; see `SPEC.md`). The composer uses the same function for its `AUTO` suggestion and always sends the chosen `icon`.
+- **Shared code:** `suggestLocationIcon(name)` in `packages/shared`. The composer uses it for `AUTO` and always sends `icon`.
 
 ## Motion
 
