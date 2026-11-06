@@ -81,7 +81,7 @@ function Chip({ label, count, active, onClick }: ChipProps) {
       className="group flex h-(--tap) shrink-0 items-center active:translate-y-px"
     >
       <span
-        className={`flex h-8 items-center gap-1.5 rounded-full border px-3 text-meta font-medium transition-colors duration-[120ms] ${active ? "border-ink bg-ink text-chrome" : "border-rule bg-field text-ink group-hover:bg-hover"}`}
+        className={`flex h-8 items-center gap-1.5 rounded-md border px-3 text-meta font-medium transition-colors duration-[120ms] ${active ? "border-ink bg-ink text-chrome" : "border-rule bg-field text-ink group-hover:bg-hover"}`}
       >
         {label}
         <span className={`coords text-[12px] ${active ? "text-chrome/70" : "text-ink-2"}`}>{count}</span>

@@ -139,7 +139,7 @@ Column, from top to bottom:
 1. **Header** (68px): the title "JustNaik Places" and an **Import** button that goes to `/upload`.
 2. **Composer:** the add/edit form card, a fixed 260px tall. See [Composer](#composer).
 3. **Search:** 52px tall, with a filter input and a `/` key hint. It matches names and icon category names.
-4. **Category filters:** a row of chips that scrolls sideways: `All 7`, `Shopping 2`, `Landmark 2`, … Only categories in use appear, each with its count. One can be selected at a time, and it combines with the search.
+4. **Category filters:** a row of chips (radius 6px, like buttons and inputs) that scrolls sideways: `All 7`, `Shopping 2`, `Landmark 2`, … Only categories in use appear, each with its count. One can be selected at a time, and it combines with the search.
 5. **List:** scrolls, newest first. See [List row](#list-row).
 
 Map pane:
