@@ -114,7 +114,7 @@ export function BottomSheet({ snap, onSnapChange, label, children }: BottomSheet
         onPointerUp={handlePointerUp}
         onPointerCancel={() => setDrag(null)}
         onKeyDown={handleKeyDown}
-        className="flex h-(--tap) shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+        className="flex h-6 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
       >
         <span className="h-1 w-9 rounded-full bg-rule" />
       </div>
