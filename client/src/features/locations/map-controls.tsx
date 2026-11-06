@@ -86,7 +86,7 @@ interface MapControlsProps {
   locations: readonly Location[];
 }
 
-/** The bar above the map frame: area, zoom level, cursor readout, Fit all and zoom. */
+/** The bar above the map frame: area, cursor readout, Fit all and zoom. */
 export function MapToolbar({ map, locations }: MapControlsProps) {
   const zoom = useZoom(map);
   const cursor = useCursorPosition(map);
@@ -94,7 +94,6 @@ export function MapToolbar({ map, locations }: MapControlsProps) {
   return (
     <div className="flex min-w-0 flex-1 items-center gap-4 pl-3">
       <p className="text-title whitespace-nowrap text-ink">{AREA_NAME}</p>
-      <span className="coords w-8 shrink-0 text-small text-ink-2">{zoom === null ? "" : `z${zoom}`}</span>
       <span aria-hidden className="coords hidden min-w-0 flex-1 truncate text-small text-ink-2 desktop:block">
         {cursor}
       </span>

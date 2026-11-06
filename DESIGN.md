@@ -140,7 +140,7 @@ Column, from top to bottom:
 
 Map pane:
 
-- **Toolbar:** the area name (static "Kuala Lumpur" is fine), the zoom level (`z12`), the cursor readout, **Fit all**, and a −/+ zoom control.
+- **Toolbar:** the area name (static "Kuala Lumpur" is fine), the cursor readout, **Fit all**, and a −/+ zoom control.
 - **Map:**
   - pins and clusters;
   - a scale bar (metric, bottom left) and attribution (bottom right);
@@ -291,16 +291,17 @@ Initial view: fit to all pins, or KL at zoom 11 when there are none (as in the s
 | `park` | fill `#dfe1c8` |
 | `water` | fill `#c3d1d1` |
 | `waterway` | line `#c3d1d1`, width 1.2 |
-| `building`, z14+ | fill `#e2dacb`, outline `#d3c9b6` |
+| `building`, z16+ | fill `#e2dacb` |
 | `transportation`, class rail/transit | line `#c4baa9`, width 1, dash `[3, 2]` |
-| `transportation`, class minor/service/tertiary, z12+ | line `#fbf8f1`, width 0.3 → 7, round caps and joins |
+| `transportation`, class minor/tertiary, z13+ | line `#fbf8f1`, width 0.3 → 7, round caps and joins |
+| `transportation`, class service, z16+ | line `#fbf8f1`, width 0.3 → 4, round caps and joins |
 | `transportation`, class primary/secondary/trunk (casing) | line `#cfc4af`, width 1 → 13 |
 | `transportation`, class primary/secondary/trunk | line `#ffffff`, width 0.6 → 11, round caps and joins |
 | `transportation`, class motorway (casing) | line `#c7b393`, width 1.4 → 15 |
 | `transportation`, class motorway | line `#f0dfc6`, width 0.9 → 13, round caps and joins |
 | `boundary`, admin_level ≤ 4 | line `#b3a894`, width 1, dash `[4, 2]` |
-| `transportation_name`, z14+ | Noto Sans Regular 11 along the line, `#8a8174`, halo `#fbf8f1` 1.5 |
-| `place`, class neighbourhood/quarter/suburb, z12+ | Noto Sans Regular 11, uppercase, letter-spacing 0.12, max width 8, `#8a8174`, halo `#ece6d9` 1.5 |
+| `transportation_name`, z15+ | Noto Sans Regular 11 along the line, `#8a8174`, halo `#fbf8f1` 1.5 |
+| `place`, class neighbourhood/quarter/suburb, z13 to z16 | Noto Sans Regular 11, uppercase, letter-spacing 0.12, max width 8, `#8a8174`, halo `#ece6d9` 1.5 |
 | `place`, class town/village | Noto Sans Regular 12.5, `#5b544b`, halo `#ece6d9` 1.5 |
 | `place`, class city | Noto Sans Bold 15, `#2c2722`, halo `#ece6d9` 2 |
 
