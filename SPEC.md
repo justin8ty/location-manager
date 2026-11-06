@@ -29,7 +29,7 @@ Full-stack app where authenticated users manage their own locations: add them ma
 - Protected routes redirect unauthenticated visitors to `/login?redirect=<path>`; after login, return to `redirect` (default `/map`).
 - Authenticated visitors to `/login` or `/register` are redirected to `/map`.
 - `/` redirects to `/map`.
-- Protected pages share a layout with navigation (Map, Upload, Logout): a 68px icon rail on desktop, a bottom tab bar on mobile.
+- Protected pages share a layout with navigation: a 68px icon rail on desktop (Map, Import, Logout), a bottom tab bar on mobile (Map, Add place, Import, Logout). On mobile, Map browses the places and Add place holds the form; both are `/map`, so there is no extra route.
 - Any API `401` clears the auth state and redirects to `/login`.
 
 ## Features
@@ -53,7 +53,7 @@ Full-stack app where authenticated users manage their own locations: add them ma
 - Form fields: name (1–100 chars, trimmed), latitude (−90..90), longitude (−180..180), icon (optional).
 - Icon: one of `pin`, `home`, `work`, `food`, `cafe`, `shop`, `park`, `nature`, `animals`, `temple`, `mosque`, `landmark`. If omitted on create, the server uses `suggestLocationIcon(name)` (rules in `DESIGN.md`). Renaming keeps the icon.
 - On submit the marker appears without a page reload. The map flies to it and opens its popup.
-- Picking a spot fills the latitude/longitude fields and shows a preview marker. Desktop: click an empty map spot. Mobile: pan the map under a fixed centre crosshair and tap **Add here**; tapping the map doesn't pick.
+- Picking a spot fills the latitude/longitude fields and shows a preview marker. Desktop: click an empty map spot. Mobile: on the Add place tab, pan the map under a fixed centre crosshair and tap **Add here**; tapping the map doesn't pick.
 - Clicking a marker shows a popup with the name and Edit, Copy (copies `lat, lng`) and Delete buttons. Delete asks for confirmation in a dialog.
 - Nearby markers are clustered; clicking a cluster zooms to its markers.
 - The list of places can be searched (name or category) and filtered by one category chip at a time.

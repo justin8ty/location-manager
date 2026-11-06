@@ -1,10 +1,11 @@
 import { Tooltip } from "@cloudflare/kumo";
 import { Toast } from "@cloudflare/kumo/primitives/toast";
 import type { User } from "@location-manager/shared";
-import { type Icon, MapTrifoldIcon, SignOutIcon, UploadSimpleIcon } from "@phosphor-icons/react";
-import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { type Icon, MapPinPlusIcon, MapTrifoldIcon, SignOutIcon, UploadSimpleIcon } from "@phosphor-icons/react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import type { MouseEvent, ReactNode } from "react";
 import { useLogout } from "../features/auth/session";
+import { usePlacesMode } from "../features/locations/places-mode";
 import { Mark } from "./mark";
 
 interface NavItem {
@@ -15,7 +16,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: "/map", label: "Map", icon: MapTrifoldIcon },
-  { to: "/upload", label: "Upload", icon: UploadSimpleIcon },
+  { to: "/upload", label: "Import", icon: UploadSimpleIcon },
 ];
 
 const RAIL_ITEM =
@@ -74,22 +75,62 @@ function Rail({ user }: { user: User }) {
   );
 }
 
+interface Tab {
+  to: NavItem["to"];
+  label: string;
+  icon: Icon;
+  active: boolean;
+  /** Tabs that share a page also switch what it shows. */
+  onSelect?: () => void;
+}
+
+/**
+ * A link that knows its own tab. A router `Link` marks every link to the current page as current, but the Map
+ * and Add place tabs share a page and only one of them is.
+ */
+function TabLink({ to, label, icon: IconComponent, active, onSelect }: Tab) {
+  const navigate = useNavigate();
+
+  function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+    // Leave new-tab and other modified clicks to the browser.
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+    event.preventDefault();
+    onSelect?.();
+    void navigate({ to });
+  }
+
+  return (
+    <a
+      href={to}
+      onClick={handleClick}
+      aria-current={active ? "page" : undefined}
+      className={`${TAB_ITEM} ${active ? "text-chrome" : ""}`}
+    >
+      <IconComponent size={22} weight={active ? "fill" : "regular"} aria-hidden />
+      {label}
+    </a>
+  );
+}
+
 /** The phone navigation: a tab bar along the bottom (DESIGN.md: Layout, Mobile). */
 function TabBar() {
   const logout = useLogoutWithToast();
+  const { mode, setMode } = usePlacesMode();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const onMap = pathname === "/map";
+
+  const tabs: Tab[] = [
+    { to: "/map", label: "Map", icon: MapTrifoldIcon, active: onMap && mode === "browse", onSelect: () => setMode("browse") },
+    { to: "/map", label: "Add place", icon: MapPinPlusIcon, active: onMap && mode === "add", onSelect: () => setMode("add") },
+    { to: "/upload", label: "Import", icon: UploadSimpleIcon, active: pathname === "/upload" },
+  ];
 
   return (
     <nav aria-label="Main" className="flex shrink-0 bg-ink pb-[env(safe-area-inset-bottom)] tablet:hidden">
       <div className="flex h-16 flex-1">
-        {NAV_ITEMS.map(({ to, label, icon: IconComponent }) => (
-          <Link key={to} to={to} className={TAB_ITEM} activeProps={{ className: "text-chrome" }}>
-            {({ isActive }) => (
-              <>
-                <IconComponent size={22} weight={isActive ? "fill" : "regular"} aria-hidden />
-                {label}
-              </>
-            )}
-          </Link>
+        {tabs.map((tab) => (
+          <TabLink key={tab.label} {...tab} />
         ))}
         <button type="button" disabled={logout.pending} onClick={logout.run} className={TAB_ITEM}>
           <SignOutIcon size={22} aria-hidden />

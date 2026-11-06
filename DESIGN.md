@@ -81,7 +81,7 @@ Text must pass WCAG AA (4.5:1) on `--chrome` and `--field`, which means using `-
 
 - **Rail:**
   - `--ink` background and full height;
-  - from the top: the mark, Map, Upload, a spacer, Log out, and the avatar (a 36px square with an initial, the email in its tooltip);
+  - from the top: the mark, Map, Import, a spacer, Log out, and the avatar (a 36px square with an initial, the email in its tooltip);
   - the active item has a lighter background.
 - **Column:** on `--chrome` with no border. Its contents depend on the page.
 - **Pane:** a 68px toolbar on top, then the map frame. The pane has 14px padding on the right and bottom and 4px on the left.
@@ -102,28 +102,31 @@ The same as desktop, but the column is 340px wide and the cursor readout is hidd
 │ map frame (8px inset)        │  ← floating map buttons at top
 │                              │
 ├──────────────────────────────┤
-│ ══ bottom sheet              │  ← column contents
+│ ══ bottom sheet              │  ← column contents (Add place: the form)
 ├──────────────────────────────┤
-│  Map    Upload    Log out    │  ← tab bar, 64px
+│ Map  Add place  Import  Log out │  ← tab bar, 64px
 └──────────────────────────────┘
 ```
 
-- **Tab bar:** replaces the rail, with the same `--ink` background. Each tab shows an icon with its label underneath. Respect `env(safe-area-inset-bottom)`.
+- **Tab bar:** replaces the rail, with the same `--ink` background. Each tab shows an icon with its label underneath. Respect `env(safe-area-inset-bottom)`. The tabs are Map, Add place, Import and Log out. Map and Add place are both `/map`; which one is showing is state, not a route.
 - **Map frame:** 8px inset from the screen edges, radius 16px. The toolbar becomes floating buttons over the top of the map (Fit all, zoom). The page title and readout are hidden.
 - **Bottom sheet:**
-  - holds what the column holds on desktop;
-  - drag the handle between three heights: collapsed (handle and header, about 120px), half (46vh) and full (82vh);
+  - the **Map** tab: it holds the column without the composer (header, search, category chips, list); the Import button is left out, since Import is a tab;
+  - drag the handle between three heights: collapsed (handle and header, 92px), half (46vh) and full (82vh);
   - tapping the handle cycles through them;
-  - selecting a place collapses it to half, and editing opens it to full;
+  - selecting a place sets it to half;
   - the map resizes to fit.
-- **Adding a place:**
+- **Add place tab:**
+  - the sheet is replaced by a fixed panel under the map holding the composer;
   - a fixed crosshair sits in the centre of the map;
-  - the user pans the map under it and taps **Add here**, a primary button floating at the bottom-centre of the map frame;
-  - this sets lat/lng to the map centre and opens the sheet to full height on the form;
+  - the user pans the map under it and taps **Add here**, a primary button floating at the bottom-centre of the map frame, which sets lat/lng to the map centre;
   - the composer's pick hint reads `Or tap Add here`;
-  - tapping the map doesn't place pins on mobile, because that clashes with panning.
+  - tapping the map doesn't place pins on mobile, because that clashes with panning;
+  - after adding, the tab stays open for the next place, with the new one's popup showing;
+  - Edit in a place's popup opens this tab with the form in edit mode; Save and Cancel return to the Map tab;
+  - the preview pin only shows on this tab, and an open popup is closed when the tab opens.
 - **Other pages:**
-  - Upload uses the same layout, with the column contents in the sheet.
+  - Import uses the same layout, with the column contents in the sheet.
   - Login and register have no tab bar (see their section).
 
 ## Pages
@@ -268,7 +271,7 @@ Initial view: fit to all pins, or KL at zoom 11 when there are none (as in the s
 - **Locations failed to load:** an error card in the column with **Retry**. The map stays visible.
 - **No places:**
   - the list says "No places yet";
-  - a centred card in the map frame says "Click anywhere to drop your first place, or import a file", or "Pan to a spot and tap Add here" on mobile;
+  - a centred card in the map frame says "Click anywhere to drop your first place, or import a file", or "Open Add place to drop your first place" on mobile (not shown on the Add place tab);
   - the card links to `/upload`.
 - **No search or filter matches:** `No places match "<query>".`
 

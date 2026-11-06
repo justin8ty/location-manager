@@ -18,6 +18,7 @@ import { FloatingMapControls, MapToolbar } from "../../features/locations/map-co
 import { CategoryChips, filterPlaces, PlaceList, PlaceSearch, sortPlaces } from "../../features/locations/place-list";
 import { MapSurface, useMapHost } from "../../features/locations/map-host";
 import { type MapFocus, PlacesMap, type PreviewPlace } from "../../features/locations/places-map";
+import { usePlacesMode } from "../../features/locations/places-mode";
 import { locationsQuery } from "../../features/locations/queries";
 import { useArrivals } from "../../features/locations/use-arrivals";
 import { useZipImport } from "../../features/upload/use-zip-import";
@@ -56,7 +57,7 @@ function Crosshair() {
 }
 
 function EmptyMapCard({ pickMethod }: { pickMethod: PickMethod }) {
-  const prompt = pickMethod === "click" ? "Click anywhere to drop your first place, or " : "Pan to a spot and tap Add here, or ";
+  const prompt = pickMethod === "click" ? "Click anywhere to drop your first place, or " : "Open Add place to drop your first place, or ";
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[1001] flex items-center justify-center p-6">
@@ -90,7 +91,8 @@ function ColumnHeader() {
   return (
     <header className="flex h-[68px] items-center justify-between gap-3 px-5">
       <h1 className="text-title text-ink">JustNaik Places</h1>
-      <Link to="/upload" className={buttonClassName({ variant: "secondary" })}>
+      {/* Phones have the Import tab. */}
+      <Link to="/upload" className={`${buttonClassName({ variant: "secondary" })} max-tablet:hidden`}>
         Import
       </Link>
     </header>
@@ -103,6 +105,7 @@ function MapPage() {
   const pickMethod: PickMethod = mobile ? "add-here" : "click";
   const arrivals = useArrivals(locations.data);
   const { map } = useMapHost();
+  const { mode, setMode } = usePlacesMode();
   const [draft, setDraft] = useState<LocationDraft>(EMPTY_DRAFT);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [focus, setFocus] = useState<MapFocus | null>(null);
@@ -125,8 +128,12 @@ function MapPage() {
   // A category whose last place was deleted no longer filters.
   const activeCategory = places?.some((location) => location.icon === category) ? category : null;
   const listed = places && filterPlaces(sortPlaces(places), query, activeCategory);
+  // On phones the Add place tab is where adding happens; the Map tab only browses.
+  const phoneAdding = mobile && mode === "add";
   const position = draftPosition(draft);
   let preview: PreviewPlace | null = position && { position, icon: draft.icon };
+
+  if (mobile && mode === "browse") preview = null;
 
   // While editing, the preview only appears once the place is moved; its own pin already marks where it is.
   if (position && editing && samePosition(editing, position[0], position[1])) preview = null;
@@ -145,7 +152,6 @@ function MapPage() {
   function addHere() {
     if (!map) return;
 
-    setSheetSnap("full");
     const { lat, lng } = map.getCenter().wrap();
     fillCoordinates(lat, lng);
   }
@@ -154,7 +160,7 @@ function MapPage() {
     map?.closePopup();
     setEditingId(location.id);
     setDraft(draftFromLocation(location));
-    setSheetSnap("full");
+    setMode("add");
   }
 
   function stopEdit() {
@@ -168,9 +174,20 @@ function MapPage() {
     setSheetSnap("half");
   }
 
+  /** On phones, leaving edit mode returns to the Map tab that it started from. */
+  function cancelEdit() {
+    stopEdit();
+
+    if (mobile) setMode("browse");
+  }
+
   function handleSaved(location: Location) {
+    const wasEditing = editingId !== null;
+
     stopEdit();
     showPlace(location);
+
+    if (mobile && wasEditing) setMode("browse");
   }
 
   function handleDeleted(location: Location) {
@@ -198,7 +215,7 @@ function MapPage() {
     // Menus and dialogs handle their own Esc and mark it handled.
     if (event.key !== "Escape" || event.defaultPrevented || pendingDelete) return;
 
-    if (editing) stopEdit();
+    if (editing) cancelEdit();
     else if (preview) setDraft((current) => ({ ...current, latitude: "", longitude: "" }));
     else if (selectedId) {
       map?.closePopup();
@@ -206,26 +223,33 @@ function MapPage() {
     }
   });
 
+  // An open popup would hide the crosshair, so the Add place tab starts with the map clear.
+  useEffect(() => {
+    if (phoneAdding) map?.closePopup();
+  }, [phoneAdding, map]);
+
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
 
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const composer = (
+    <Composer
+      key={editing?.id ?? "new"}
+      draft={draft}
+      onDraftChange={setDraft}
+      editing={editing}
+      onSaved={handleSaved}
+      onCancelEdit={cancelEdit}
+      pickMethod={pickMethod}
+      nameInputRef={nameInput}
+    />
+  );
+
   const column = (
     <MapColumn
-      composer={
-        <Composer
-          key={editing?.id ?? "new"}
-          draft={draft}
-          onDraftChange={setDraft}
-          editing={editing}
-          onSaved={handleSaved}
-          onCancelEdit={stopEdit}
-          pickMethod={pickMethod}
-          nameInputRef={nameInput}
-        />
-      }
+      composer={mobile ? null : composer}
       searchInput={searchInput}
       query={query}
       onQueryChange={setQuery}
@@ -266,12 +290,12 @@ function MapPage() {
         onPlaceOpen={handlePlaceOpen}
         onPlaceClose={handlePlaceClose}
       />
-      {places?.length === 0 && !preview && <EmptyMapCard pickMethod={pickMethod} />}
+      {places?.length === 0 && !preview && !phoneAdding && <EmptyMapCard pickMethod={pickMethod} />}
       {mobile && (
         <>
           <FloatingMapControls map={map} locations={places ?? []} />
-          {/* Aiming needs the map: not with the sheet at full height (the map is a sliver) or a place open. */}
-          {sheetSnap !== "full" && selectedId === null && (
+          {/* Aiming is for the Add place tab, and needs the map clear of an open place. */}
+          {phoneAdding && selectedId === null && (
             <>
               <Crosshair />
               <div className="pointer-events-none absolute inset-x-0 bottom-5 z-[1001] flex justify-center">
@@ -291,6 +315,7 @@ function MapPage() {
       <Workspace
         column={column}
         columnHeader={<ColumnHeader />}
+        phonePanel={phoneAdding ? composer : undefined}
         columnLabel="Places"
         toolbar={<MapToolbar map={map} locations={places ?? []} />}
         frame={frame}
