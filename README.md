@@ -25,7 +25,7 @@ pnpm --filter ./client dev
 
 The API container runs in production mode, so the session cookie is `Secure`. Chrome and Firefox accept it on `http://localhost`; Safari may not.
 
-### Option B: run locally
+### Option B: run locally (not recommended)
 
 ```bash
 docker compose up -d db
