@@ -1,49 +1,30 @@
-import { Button, Empty, Link, Loader } from "@cloudflare/kumo";
-import { CompassIcon, WarningCircleIcon } from "@phosphor-icons/react";
-import { type ErrorComponentProps, useRouter } from "@tanstack/react-router";
+import { Loader } from "@cloudflare/kumo";
+import { type ErrorComponentProps, Link, useRouter } from "@tanstack/react-router";
+import type { ReactNode } from "react";
+import { Button, buttonClassName } from "./button";
+import { MarkTile } from "./mark";
 
-// Route-level states fill the viewport; page-level states fill the content area beside the sidebar.
-const FULL_SCREEN = "min-h-dvh";
-const CONTENT_AREA = "h-full";
-
-function PendingState({ className }: { className: string }) {
+function FullScreenMessage({ title, message, action }: { title: string; message: string; action: ReactNode }) {
   return (
-    <div className={`flex items-center justify-center ${className}`} role="status" aria-label="Loading">
-      <Loader size={24} />
-    </div>
-  );
-}
-
-interface ErrorStateProps {
-  title: string;
-  message: string;
-  onRetry: () => void;
-  className: string;
-}
-
-function ErrorState({ title, message, onRetry, className }: ErrorStateProps) {
-  return (
-    <div className={`mx-auto flex max-w-md items-center justify-center p-6 ${className}`}>
-      <Empty
-        icon={<WarningCircleIcon size={32} className="text-kumo-danger" />}
-        title={title}
-        description={message}
-        contents={
-          <Button variant="primary" onClick={onRetry}>
-            Try again
-          </Button>
-        }
-      />
-    </div>
+    <main className="flex min-h-dvh items-center justify-center bg-chrome p-6">
+      <div className="flex max-w-sm flex-col items-start gap-4">
+        <MarkTile />
+        <div>
+          <h1 className="text-title text-ink">{title}</h1>
+          <p className="mt-1 text-ink-2">{message}</p>
+        </div>
+        {action}
+      </div>
+    </main>
   );
 }
 
 export function RoutePending() {
-  return <PendingState className={FULL_SCREEN} />;
-}
-
-export function PagePending() {
-  return <PendingState className={CONTENT_AREA} />;
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-chrome text-ink-2">
+      <Loader size={24} aria-label="Loading" />
+    </div>
+  );
 }
 
 /** Shown when a route fails to load, e.g. the server is unreachable while checking the session. */
@@ -57,29 +38,29 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
 
   const message = error instanceof Error ? error.message : "Please try again.";
 
-  return <ErrorState title="Something went wrong" message={message} onRetry={retry} className={FULL_SCREEN} />;
-}
-
-interface PageErrorProps {
-  title: string;
-  error: Error;
-  onRetry: () => void;
-}
-
-/** Shown in the content area when a signed-in page fails to load its data. */
-export function PageError({ title, error, onRetry }: PageErrorProps) {
-  return <ErrorState title={title} message={error.message} onRetry={onRetry} className={CONTENT_AREA} />;
+  return (
+    <FullScreenMessage
+      title="Something went wrong"
+      message={message}
+      action={
+        <Button variant="primary" onClick={() => void retry()}>
+          Try again
+        </Button>
+      }
+    />
+  );
 }
 
 export function RouteNotFound() {
   return (
-    <div className={`mx-auto flex max-w-md items-center justify-center p-6 ${FULL_SCREEN}`}>
-      <Empty
-        icon={<CompassIcon size={32} />}
-        title="Page not found"
-        description="This page doesn't exist."
-        contents={<Link href="/map">Go to the map</Link>}
-      />
-    </div>
+    <FullScreenMessage
+      title="Page not found"
+      message="This page doesn't exist."
+      action={
+        <Link to="/map" className={buttonClassName({ variant: "secondary" })}>
+          Go to the map
+        </Link>
+      }
+    />
   );
 }
