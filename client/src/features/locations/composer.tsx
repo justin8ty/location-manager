@@ -11,8 +11,8 @@ import { useCreateLocation, useUpdateLocation } from "./queries";
 export type PickMethod = "click" | "add-here";
 
 const HINTS: Record<PickMethod, { adding: string; editing: string }> = {
-  click: { adding: "or click the map", editing: "click the map to move" },
-  "add-here": { adding: "or pan and tap Add here", editing: "pan and tap Add here to move" },
+  click: { adding: "Or click the map", editing: "Click the map to move it" },
+  "add-here": { adding: "Or pan the map and tap Add here", editing: "Pan the map and tap Add here to move it" },
 };
 
 const ERROR_ID = "composer-error";
@@ -29,26 +29,6 @@ interface ComposerProps {
   nameInputRef: Ref<HTMLInputElement>;
 }
 
-function ModeLabel({ editing, pickMethod }: { editing: Location | null; pickMethod: PickMethod }) {
-  const hint = editing ? HINTS[pickMethod].editing : HINTS[pickMethod].adding;
-
-  return (
-    <div className="col-span-3 flex min-w-0 items-baseline justify-between gap-3">
-      <span className="caps flex min-w-0 gap-1.5">
-        {editing ? (
-          <>
-            <span className="shrink-0">Editing ·</span>
-            <span className="truncate text-accent">{editing.name}</span>
-          </>
-        ) : (
-          "New place"
-        )}
-      </span>
-      <span className="shrink-0 text-small text-ink-2">{hint}</span>
-    </div>
-  );
-}
-
 /**
  * Adds a place, or edits one (DESIGN.md: Composer). The draft is owned by the page, so the map can fill
  * in coordinates in either mode. Its height is fixed, so modes and errors never move what's below.
@@ -63,6 +43,9 @@ export function Composer(props: ComposerProps) {
   const saving = creation.isPending || update.isPending;
   const requestError = editing ? update.error : creation.error;
   const message = errors.name ?? errors.latitude ?? errors.longitude ?? requestError?.message;
+  // Says where the coordinates can come from, until there is nothing left to fill in. An error takes its place.
+  const hints = HINTS[props.pickMethod];
+  const pickHint = editing ? hints.editing : draft.latitude === "" || draft.longitude === "" ? hints.adding : undefined;
 
   function setCoordinate(field: "latitude" | "longitude", value: string) {
     props.onDraftChange({ ...draft, [field]: value });
@@ -97,10 +80,8 @@ export function Composer(props: ComposerProps) {
       noValidate
       onSubmit={handleSubmit}
       aria-label={editing ? `Edit ${editing.name}` : "Add a place"}
-      className="grid h-[282px] shrink-0 grid-cols-[44px_1fr_1.25fr] content-between gap-x-2.5 rounded-[10px] border border-rule bg-field p-4"
+      className={`grid h-[256px] shrink-0 grid-cols-[44px_1fr_1.25fr] content-between gap-x-2.5 rounded-[10px] border bg-field p-4 ${editing ? "border-accent/50" : "border-rule"}`}
     >
-      <ModeLabel editing={editing} pickMethod={props.pickMethod} />
-
       <div className="flex flex-col gap-1">
         <span className="caps" aria-hidden>
           Icon
@@ -150,9 +131,16 @@ export function Composer(props: ComposerProps) {
         aria-describedby={ERROR_ID}
       />
 
-      <p id={ERROR_ID} aria-live="polite" className="col-span-3 h-[18px] truncate text-meta text-accent">
-        {message}
-      </p>
+      <div className="col-span-3 h-[18px] text-center">
+        <p id={ERROR_ID} aria-live="polite" className="truncate text-meta text-accent">
+          {message}
+        </p>
+        {!message && pickHint && (
+          <p aria-hidden className="truncate text-meta text-ink-2">
+            {pickHint}
+          </p>
+        )}
+      </div>
 
       <div className="col-span-3 flex gap-2">
         {editing ? (

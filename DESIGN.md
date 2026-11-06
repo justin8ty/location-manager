@@ -120,7 +120,7 @@ The same as desktop, but the column is 340px wide and the cursor readout is hidd
   - a fixed crosshair sits in the centre of the map;
   - the user pans the map under it and taps **Add here**, a primary button floating at the bottom-centre of the map frame;
   - this sets lat/lng to the map centre and opens the sheet to full height on the form;
-  - the composer's mode hint reads `or pan and tap Add here`, or `pan and tap Add here to move` in edit mode;
+  - the composer's pick hint reads `Or pan the map and tap Add here`;
   - tapping the map doesn't place pins on mobile, because that clashes with panning.
 - **Other pages:**
   - Upload uses the same layout, with the column contents in the sheet.
@@ -133,7 +133,7 @@ The same as desktop, but the column is 340px wide and the cursor readout is hidd
 Column, from top to bottom:
 
 1. **Header** (68px): the title "JustNaik Places" and an **Import** button that goes to `/upload`.
-2. **Composer:** the add/edit form card, a fixed 282px tall. See [Composer](#composer).
+2. **Composer:** the add/edit form card, a fixed 256px tall. See [Composer](#composer).
 3. **Search:** 52px tall, with a filter input and a `/` key hint. It matches names and icon category names.
 4. **Category filters:** a row of chips that scrolls sideways: `All 7`, `Shopping 2`, `Landmark 2`, … Only categories in use appear, each with its count. One can be selected at a time, and it combines with the search.
 5. **List:** scrolls, newest first. See [List row](#list-row).
@@ -185,11 +185,10 @@ Initial view: fit to all pins, or KL at zoom 11 when there are none (as in the s
   - a card (`--field`, 1px `--rule` border, radius 10px), fixed height so modes and errors never move the list;
   - a 3-column grid: `44px 1fr 1fr`.
 - **Rows:**
-  1. **Mode label:** `NEW PLACE` with the hint `or click the map`, or `EDITING · <name>` (name in accent) with `click the map to move`.
-  2. **Icon button and name:** the 44px icon button sits beside the Name input.
-  3. **Coordinates:** Latitude spans columns 1–2 and Longitude takes column 3.
-  4. **Error line:** 18px reserved; `--accent`, 13px. Errors come from the shared zod schemas, and the invalid input gets an accent border.
-  5. **Actions:** the full-width primary button **Add place** (`+` icon), or **Save** (check icon) with **Cancel** in edit mode.
+  1. **Icon button and name:** the 44px icon button sits beside the Name input.
+  2. **Coordinates:** Latitude spans columns 1–2 and Longitude takes column 3.
+  3. **Error line:** 18px reserved, centred. Without an error it holds the pick hint in `--ink-2` (`Or click the map`; `Or pan the map and tap Add here` on phones; `Click the map to move it` in edit mode), shown while a coordinate is empty and always in edit mode. An error is `--accent`, 13px, and replaces it. Errors come from the shared zod schemas, and the invalid input gets an accent border.
+  4. **Actions:** the full-width primary button **Add place** (`+` icon), or **Save** (check icon) with **Cancel** in edit mode.
 - **Clicking the map (desktop):**
   - fills lat/lng to 6 decimal places;
   - shows a preview pin;
