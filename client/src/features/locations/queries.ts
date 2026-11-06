@@ -1,10 +1,11 @@
 import {
   type CreateLocationRequest,
+  type Location,
   locationResponseSchema,
   locationsResponseSchema,
   type UpdateLocationRequest,
 } from "@location-manager/shared";
-import { queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, queryOptions, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ApiError, apiRequest, apiRequestNoContent } from "../../lib/api";
 
 /** The signed-in user's locations, oldest first. */
@@ -15,14 +16,27 @@ export const locationsQuery = queryOptions({
   staleTime: Number.POSITIVE_INFINITY,
 });
 
+/**
+ * Applies a change to the cached list. Before the list has loaded there is nothing to change, and the
+ * load may have started before the change was saved, so the list is fetched again instead.
+ */
+export function updateCachedLocations(queryClient: QueryClient, update: (locations: Location[]) => Location[]) {
+  if (queryClient.getQueryData(locationsQuery.queryKey) === undefined) {
+    void queryClient.invalidateQueries(locationsQuery);
+
+    return;
+  }
+
+  queryClient.setQueryData(locationsQuery.queryKey, (locations) => locations && update(locations));
+}
+
 export function useCreateLocation() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: CreateLocationRequest) =>
       (await apiRequest("POST", "/locations", locationResponseSchema, input)).location,
-    onSuccess: (location) =>
-      queryClient.setQueryData(locationsQuery.queryKey, (locations) => locations?.concat(location)),
+    onSuccess: (location) => updateCachedLocations(queryClient, (locations) => locations.concat(location)),
   });
 }
 
@@ -38,8 +52,8 @@ export function useUpdateLocation() {
     mutationFn: async ({ id, changes }: LocationUpdate) =>
       (await apiRequest("PATCH", `/locations/${id}`, locationResponseSchema, changes)).location,
     onSuccess: (updated) =>
-      queryClient.setQueryData(locationsQuery.queryKey, (locations) =>
-        locations?.map((location) => (location.id === updated.id ? updated : location)),
+      updateCachedLocations(queryClient, (locations) =>
+        locations.map((location) => (location.id === updated.id ? updated : location)),
       ),
   });
 }
@@ -57,8 +71,6 @@ export function useDeleteLocation() {
       }
     },
     onSuccess: (_, id) =>
-      queryClient.setQueryData(locationsQuery.queryKey, (locations) =>
-        locations?.filter((location) => location.id !== id),
-      ),
+      updateCachedLocations(queryClient, (locations) => locations.filter((location) => location.id !== id)),
   });
 }

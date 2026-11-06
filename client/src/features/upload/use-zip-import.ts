@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { apiRequest, isUnauthenticated } from "../../lib/api";
 import { formatPlaceCount } from "../locations/format";
-import { locationsQuery } from "../locations/queries";
+import { updateCachedLocations } from "../locations/queries";
 
 /** Upload results are toasted for 3 seconds (SPEC: File Upload). */
 export const UPLOAD_TOAST_MS = 3000;
@@ -33,7 +33,7 @@ export function useZipImport({ offerViewOnMap, onImported }: ZipImportOptions) {
       return apiRequest("POST", "/locations/upload", uploadResponseSchema, body);
     },
     onSuccess: ({ count, locations }, file) => {
-      queryClient.setQueryData(locationsQuery.queryKey, (current) => current?.concat(locations));
+      updateCachedLocations(queryClient, (current) => current.concat(locations));
       onImported(locations);
 
       const toastId: string = toasts.add({

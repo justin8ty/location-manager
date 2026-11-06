@@ -129,7 +129,10 @@ function FocusController({ focus, markers, clusters }: FocusControllerProps) {
     // A place inside a cluster needs the cluster opened before its popup can show.
     const reveal = () => clusters.current?.zoomToShowLayer(marker, () => marker.openPopup());
     const zoom = Math.max(map.getZoom(), FOCUS_ZOOM);
-    map.closePopup();
+
+    // Another place's popup closes; this one's stays open (closing it would deselect the place mid-flight).
+    if (!marker.isPopupOpen()) map.closePopup();
+
     map.once("moveend", reveal);
 
     if (prefersReducedMotion()) map.setView(marker.getLatLng(), zoom, { animate: false });

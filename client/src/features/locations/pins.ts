@@ -69,7 +69,8 @@ export function clusterPin(icons: readonly LocationIcon[]): DivIcon {
   const shared = first !== undefined && icons.every((icon) => icon === first);
 
   return divIcon({
-    html: shared ? PLACE_ICONS[first].fillSvg : String(icons.length),
+    // Leaflet makes the cluster a focusable button; the hidden text names it.
+    html: `<span aria-hidden="true">${shared ? PLACE_ICONS[first].fillSvg : icons.length}</span><span class="sr-only">${icons.length} places</span>`,
     className: "place-cluster",
     iconSize: [CLUSTER_SIZE, CLUSTER_SIZE],
   });
