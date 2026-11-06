@@ -26,13 +26,6 @@ Suria KLCC,3.157324409,101.7121981
 Zoo Negara,3.21054160,101.75920504
 Pavilion, Bukit Bintang,3.149,101.713`;
 
-const FORMAT_RULES = [
-  "The ZIP holds exactly one .txt file (a subfolder is fine). The text file can be up to 1 MB.",
-  "The header row is optional, and spaces around values are ignored.",
-  "Names can contain commas: the last two values on a line are always the latitude and longitude.",
-  "If any line is invalid, nothing is saved, so you can fix the file and import it again.",
-];
-
 const LISTED_IMPORTS = 5;
 
 function FormatHelp() {
@@ -43,13 +36,9 @@ function FormatHelp() {
         <CaretDownIcon size={16} aria-hidden className="text-ink-2 transition-transform duration-[120ms] group-open:rotate-180" />
       </summary>
       <div className="flex flex-col gap-3 border-t border-rule px-4 pt-3 pb-4">
-        <p className="text-meta text-ink-2">Each line holds a name, a latitude and a longitude, separated by commas.</p>
+        <p className="text-meta text-ink-2">A ZIP with one .txt file, one place per line: name, latitude, longitude.</p>
         <pre className="overflow-x-auto rounded-md bg-chrome px-3 py-2.5 font-mono text-[12px] leading-5 text-ink">{SAMPLE}</pre>
-        <ul className="flex list-disc flex-col gap-1.5 pl-4 text-meta text-ink marker:text-ink-3">
-          {FORMAT_RULES.map((rule) => (
-            <li key={rule}>{rule}</li>
-          ))}
-        </ul>
+        <p className="text-meta text-ink-2">If any line is invalid, nothing is imported.</p>
       </div>
     </details>
   );
