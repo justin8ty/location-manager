@@ -33,6 +33,17 @@ The API container runs in production mode, so the session cookie is `Secure`. Ch
 4. On **Import**, upload a ZIP containing one `.txt` file of locations. Try [`samples/locations.zip`](./samples/locations.zip); the format is in [SPEC.md](./SPEC.md#txt-format).
 5. Log out from the rail (the tab bar on mobile).
 
+## Mobile
+
+This app is mobile optimized. To try it on a phone over [Tailscale](https://tailscale.com) (HTTPS is needed, because the session cookie is `Secure`):
+
+1. Enable HTTPS certificates for your tailnet in the Tailscale admin console (DNS).
+2. Add your computer's name, such as `my-pc.tailnet-name.ts.net`, to `server.allowedHosts` in `client/vite.config.ts`.
+3. With the app running, run `tailscale serve --bg 5173`.
+4. On the phone, which must be on the same tailnet, open `https://my-pc.tailnet-name.ts.net`.
+
+Stop sharing with `tailscale serve off`.
+
 ## Dev
 
 ```bash
