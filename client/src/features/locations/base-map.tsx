@@ -39,42 +39,64 @@ interface GlMapInternals {
   _actualCanvas: HTMLCanvasElement;
 }
 
-/** The parts of maplibre-gl-leaflet's layer that `settleAfterZoom` uses; the library doesn't type them. */
+/** The parts of maplibre-gl-leaflet's layer that the zoom handoff below touches; the library doesn't type them. */
 interface LayerInternals {
   _map: LeafletMap | null;
   _glMap: GlMapInternals | null;
+  _zooming: boolean;
+  _update(): void;
   _resizeContainer(): void;
-  _zoomEnd(): void;
+}
+
+/** Runs `apply` once maplibre has drawn its current view (or after a short wait, if it never says so). */
+function afterNextDraw(layer: LayerInternals, apply: () => void) {
+  const gl = layer._glMap;
+
+  if (!gl) return;
+
+  let done = false;
+
+  const run = () => {
+    if (done) return;
+
+    done = true;
+
+    if (layer._glMap) apply();
+  };
+
+  gl.once("render", run);
+  window.setTimeout(run, SETTLE_TIMEOUT_MS);
+  gl.triggerRepaint();
 }
 
 /**
- * Replaces the layer's own end-of-zoom step. During a zoom animation Leaflet scales the GL canvas like a
- * bitmap; the library then puts the canvas back at scale 1 before maplibre has drawn the new zoom, so one
- * frame shows stale tiles at the wrong size. Here the scaled canvas stays until maplibre has drawn.
+ * Replaces the layer's end-of-zoom step. During a zoom animation Leaflet scales the GL canvas like a bitmap.
+ * The library put it back at scale 1 the moment the zoom ended, before maplibre had drawn the new zoom, so
+ * the old zoom's picture showed for a moment before the right one replaced it. Here the scaled canvas stays,
+ * which already matches the new view, until maplibre has drawn.
  */
-function settleAfterZoom(this: LayerInternals) {
+function endZoom(this: LayerInternals) {
+  afterNextDraw(this, () => {
+    const { _map: map, _glMap: gl } = this;
+
+    if (!map || !gl) return;
+
+    L.DomUtil.setTransform(gl._actualCanvas, L.point(0, 0), map.getZoomScale(map.getZoom()));
+    this._zooming = false;
+    this._update();
+  });
+}
+
+/** The same wait for a zoom animation's CSS transition ending and for the map being resized. */
+function settleView(this: LayerInternals) {
   L.Util.requestAnimFrame(() => {
     const { _map: map, _glMap: gl } = this;
 
     if (!map || !gl) return;
 
-    const center = map.getCenter();
-    const offset = map.latLngToContainerPoint(map.getBounds().getNorthWest());
-    let settled = false;
-
-    const settle = () => {
-      if (settled || !this._glMap) return;
-
-      settled = true;
-      L.DomUtil.setTransform(gl._actualCanvas, offset, 1);
-      this._zoomEnd();
-    };
-
     this._resizeContainer();
-    gl.once("render", settle);
-    window.setTimeout(settle, SETTLE_TIMEOUT_MS);
-    gl.jumpTo({ center, zoom: map.getZoom() - 1 });
-    gl.triggerRepaint();
+    gl.jumpTo({ center: map.getCenter(), zoom: map.getZoom() - 1 });
+    endZoom.call(this);
   });
 }
 
@@ -95,8 +117,8 @@ function VectorBasemap() {
         pixelRatio: Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO),
         fadeDuration: LABEL_FADE_MS,
       });
-      // Set before adding: the layer reads it when it joins the map.
-      Object.assign(layer, { _transitionEnd: settleAfterZoom });
+      // Set before adding: the layer reads these when it joins the map.
+      Object.assign(layer, { _zoomEnd: endZoom, _transitionEnd: settleView });
       layer.addTo(map);
     });
 
