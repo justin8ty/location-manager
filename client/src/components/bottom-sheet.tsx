@@ -4,8 +4,8 @@ export type SheetSnap = "collapsed" | "half" | "full";
 
 const SNAPS: readonly SheetSnap[] = ["collapsed", "half", "full"];
 
-// The handle (24px) plus a page's 44px header: collapsed shows the title and nothing under it.
-const COLLAPSED_PX = 68;
+// The handle (16px) plus a page's 36px header: collapsed shows the title and nothing under it.
+const COLLAPSED_PX = 52;
 const HALF_SHARE = 0.46;
 const FULL_SHARE = 0.82;
 
@@ -118,12 +118,21 @@ export function BottomSheet({ snap, onSnapChange, label, header, children }: Bot
         onPointerUp={handlePointerUp}
         onPointerCancel={() => setDrag(null)}
         onKeyDown={handleKeyDown}
-        className="flex h-[24px] shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+        className="flex h-[16px] shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
       >
         <span className="h-1 w-9 rounded-full bg-rule" />
       </div>
-      {/* Above the scroller in paint order, so the scroller's snapped edge can't show a sliver over it. */}
-      <div className="relative z-10 shrink-0 bg-chrome">{header}</div>
+      {/* Above the scroller in paint order, so the scroller's snapped edge can't show a sliver over it.
+          The title drags the sheet too, so the handle itself can stay slim. */}
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={() => setDrag(null)}
+        className="relative z-10 shrink-0 cursor-grab touch-none bg-chrome active:cursor-grabbing"
+      >
+        {header}
+      </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
     </section>
   );

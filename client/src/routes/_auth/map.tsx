@@ -159,6 +159,7 @@ function MapPage() {
   function addHere() {
     if (!map) return;
 
+    setAddSnap("full");
     const { lat, lng } = map.getCenter().wrap();
     fillCoordinates(lat, lng);
   }
@@ -167,6 +168,7 @@ function MapPage() {
     map?.closePopup();
     setEditingId(location.id);
     setDraft(draftFromLocation(location));
+    setAddSnap("full");
     setMode("add");
   }
 
@@ -255,7 +257,10 @@ function MapPage() {
   );
 
   const column = phoneAdding ? (
-    <div className="px-5 pb-4">{composer}</div>
+    // Typing needs room: focusing any field opens the sheet to full height.
+    <div className="px-5 pb-4" onFocus={() => setAddSnap("full")}>
+      {composer}
+    </div>
   ) : (
     <MapColumn
       composer={mobile ? null : composer}
