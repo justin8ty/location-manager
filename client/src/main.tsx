@@ -1,4 +1,3 @@
-import { LinkProvider, Toasty } from "@cloudflare/kumo";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
@@ -6,7 +5,7 @@ import { createRoot } from "react-dom/client";
 import "leaflet/dist/leaflet.css";
 import "./index.css";
 import { RouteError, RoutePending } from "./components/route-states";
-import { RouterLink } from "./components/router-link";
+import { ToastRegion } from "./components/toasts";
 import { clearSession } from "./features/auth/session";
 import { createQueryClient } from "./lib/query-client";
 import { routeTree } from "./routeTree.gen";
@@ -39,11 +38,9 @@ if (!rootElement) throw new Error("Root element #root not found");
 createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <LinkProvider component={RouterLink}>
-        <Toasty>
-          <RouterProvider router={router} />
-        </Toasty>
-      </LinkProvider>
+      <ToastRegion>
+        <RouterProvider router={router} />
+      </ToastRegion>
     </QueryClientProvider>
   </StrictMode>,
 );
