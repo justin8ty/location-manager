@@ -70,7 +70,7 @@ export function clusterPin(icons: readonly LocationIcon[]): DivIcon {
 
   return divIcon({
     // Leaflet makes the cluster a focusable button; the hidden text names it.
-    html: `<span aria-hidden="true">${shared ? PLACE_ICONS[first].fillSvg : icons.length}</span><span class="sr-only">${icons.length} places</span>`,
+    html: `<span class="place-cluster__body" aria-hidden="true">${shared ? PLACE_ICONS[first].fillSvg : icons.length}</span><span class="sr-only">${icons.length} places</span>`,
     className: "place-cluster",
     iconSize: [CLUSTER_SIZE, CLUSTER_SIZE],
   });
