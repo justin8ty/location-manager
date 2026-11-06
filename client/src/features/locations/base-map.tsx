@@ -1,4 +1,5 @@
 import L, { control, type LatLng, type Map as LeafletMap, type MaplibreGL } from "leaflet";
+import type { Map as MaplibreMap } from "maplibre-gl";
 import { type ReactNode, type Ref, useEffect } from "react";
 import { MapContainer, type MapContainerProps, ScaleControl, useMap } from "react-leaflet";
 import { MAP_ATTRIBUTION, MAP_STYLE } from "./map-style";
@@ -100,6 +101,16 @@ function settleView(this: LayerInternals) {
   });
 }
 
+const basemaps = new WeakMap<LeafletMap, MaplibreMap>();
+
+/** Fired on the Leaflet map once its vector basemap exists and `basemapOf` has it. */
+export const BASEMAP_READY = "basemapready";
+
+/** The maplibre map drawing under a Leaflet map, once it has loaded. */
+export function basemapOf(map: LeafletMap): MaplibreMap | undefined {
+  return basemaps.get(map);
+}
+
 /** Draws the vector basemap under everything else, once maplibre-gl has loaded. Until then the frame shows land. */
 function VectorBasemap() {
   const map = useMap();
@@ -120,6 +131,8 @@ function VectorBasemap() {
       // Set before adding: the layer reads these when it joins the map.
       Object.assign(layer, { _zoomEnd: endZoom, _transitionEnd: settleView });
       layer.addTo(map);
+      basemaps.set(map, layer.getMaplibreMap());
+      map.fire(BASEMAP_READY);
     });
 
     return () => {

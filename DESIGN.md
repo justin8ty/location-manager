@@ -140,7 +140,7 @@ Column, from top to bottom:
 
 Map pane:
 
-- **Toolbar:** the area name (static "Kuala Lumpur" is fine), the cursor readout, **Fit all**, and a −/+ zoom control.
+- **Toolbar:** the area name (read from the basemap's place labels: a neighbourhood, city, state or country by zoom), the cursor readout, **Fit all**, and a −/+ zoom control.
 - **Map:**
   - pins and clusters;
   - a scale bar (metric, bottom left) and attribution (bottom right);

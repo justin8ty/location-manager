@@ -10,7 +10,8 @@ export const MAP_ATTRIBUTION =
   '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a>' +
   "</div></details>";
 
-const SOURCE = "openmaptiles";
+export const BASEMAP_SOURCE = "openmaptiles";
+const SOURCE = BASEMAP_SOURCE;
 const LABEL_TEXT: DataDrivenPropertyValueSpecification<string> = ["coalesce", ["get", "name:latin"], ["get", "name"]];
 const REGULAR_FONT = ["Noto Sans Regular"];
 const BOLD_FONT = ["Noto Sans Bold"];

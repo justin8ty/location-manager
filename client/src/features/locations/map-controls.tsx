@@ -4,10 +4,38 @@ import type { LeafletMouseEvent, Map as LeafletMap } from "leaflet";
 import { useEffect, useState } from "react";
 import { Button } from "../../components/button";
 import { formatCoordinates } from "./format";
+import { areaNameAt } from "./area-name";
+import { BASEMAP_READY, basemapOf } from "./base-map";
 import { fitPlaces } from "./map-view";
 
-// The area name is static for now (DESIGN.md: Pages, Map).
-const AREA_NAME = "Kuala Lumpur";
+/** Names the area in view from the basemap's own place labels; it keeps the last name while a new one loads. */
+function useAreaName(map: LeafletMap | null): string | null {
+  const [name, setName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!map) return;
+
+    const update = () => setName((current) => areaNameAt(map) ?? current);
+    let attached: ReturnType<typeof basemapOf>;
+
+    const attach = () => {
+      attached = basemapOf(map);
+      // `idle` follows every move once the tiles it needs have loaded.
+      attached?.on("idle", update);
+      update();
+    };
+
+    if (basemapOf(map)) attach();
+    else map.once(BASEMAP_READY, attach);
+
+    return () => {
+      map.off(BASEMAP_READY, attach);
+      attached?.off("idle", update);
+    };
+  }, [map]);
+
+  return name;
+}
 
 function useZoom(map: LeafletMap | null): number | null {
   const [zoom, setZoom] = useState<number | null>(null);
@@ -89,11 +117,12 @@ interface MapControlsProps {
 /** The bar above the map frame: area, cursor readout, Fit all and zoom. */
 export function MapToolbar({ map, locations }: MapControlsProps) {
   const zoom = useZoom(map);
+  const areaName = useAreaName(map);
   const cursor = useCursorPosition(map);
 
   return (
     <div className="flex min-w-0 flex-1 items-center gap-4 pl-3">
-      <p className="text-title whitespace-nowrap text-ink">{AREA_NAME}</p>
+      <p className="text-title whitespace-nowrap text-ink">{areaName}</p>
       <span aria-hidden className="coords hidden min-w-0 flex-1 truncate text-small text-ink-2 desktop:block">
         {cursor}
       </span>
