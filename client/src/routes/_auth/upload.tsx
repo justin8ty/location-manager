@@ -2,13 +2,13 @@ import type { Location } from "@location-manager/shared";
 import { CaretDownIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import type { Map as LeafletMap } from "leaflet";
 import { useState } from "react";
 import type { SheetSnap } from "../../components/bottom-sheet";
 import { Workspace } from "../../components/workspace";
 import { formatPlaceCount } from "../../features/locations/format";
 import { FloatingMapControls, MapToolbar } from "../../features/locations/map-controls";
 import { PLACE_ICONS } from "../../features/locations/place-icons";
+import { MapSurface, useMapHost } from "../../features/locations/map-host";
 import { type MapFocus, PlacesMap } from "../../features/locations/places-map";
 import { locationsQuery } from "../../features/locations/queries";
 import { useArrivals } from "../../features/locations/use-arrivals";
@@ -104,7 +104,7 @@ function UploadPage() {
   const locations = useQuery(locationsQuery);
   const mobile = useIsMobile();
   const arrivals = useArrivals(locations.data);
-  const [map, setMap] = useState<LeafletMap | null>(null);
+  const { map } = useMapHost();
   const [focus, setFocus] = useState<MapFocus | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sheetSnap, setSheetSnap] = useState<SheetSnap>("half");
@@ -117,7 +117,6 @@ function UploadPage() {
   });
 
   const places = locations.data ?? [];
-  const mapReady = locations.data !== undefined || locations.isError;
 
   const columnHeader = (
     <header className="flex h-[68px] items-center px-5">
@@ -133,8 +132,9 @@ function UploadPage() {
     </div>
   );
 
-  const frame = mapReady && (
+  const frame = (
     <>
+      <MapSurface />
       <PlacesMap
         locations={places}
         arrivals={arrivals}
@@ -144,7 +144,6 @@ function UploadPage() {
         focus={focus}
         onPlaceOpen={setSelectedId}
         onPlaceClose={(id) => setSelectedId((current) => (current === id ? null : current))}
-        mapRef={setMap}
       />
       {mobile && <FloatingMapControls map={map} locations={places} />}
     </>

@@ -4,7 +4,7 @@ import type { LeafletMouseEvent, Map as LeafletMap } from "leaflet";
 import { useEffect, useState } from "react";
 import { Button } from "../../components/button";
 import { formatCoordinates } from "./format";
-import { fitPlaces } from "./places-map";
+import { fitPlaces } from "./map-view";
 
 // The area name is static for now (DESIGN.md: Pages, Map).
 const AREA_NAME = "Kuala Lumpur";

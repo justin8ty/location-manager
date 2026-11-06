@@ -1,4 +1,4 @@
-import { control, type Map as LeafletMap, type MaplibreGL } from "leaflet";
+import L, { control, type LatLng, type Map as LeafletMap, type MaplibreGL } from "leaflet";
 import { type ReactNode, type Ref, useEffect } from "react";
 import { MapContainer, type MapContainerProps, ScaleControl, useMap } from "react-leaflet";
 import { MAP_ATTRIBUTION, MAP_STYLE } from "./map-style";
@@ -18,6 +18,66 @@ async function loadVectorLayer() {
   return maplibreGL;
 }
 
+// The GL canvas is drawn at most this sharp: a phone's 3x screen costs 2.25x the pixels of 2x for little to see.
+const MAX_PIXEL_RATIO = 2;
+
+// Labels fade in over this long; the default 300 ms reads as flicker while zooming.
+const LABEL_FADE_MS = 100;
+
+// If maplibre hasn't drawn by then, show the canvas as it is rather than leave it scaled.
+const SETTLE_TIMEOUT_MS = 120;
+
+interface JumpTarget {
+  center: LatLng;
+  zoom: number;
+}
+
+interface GlMapInternals {
+  jumpTo(target: JumpTarget): void;
+  once(type: "render", listener: () => void): void;
+  triggerRepaint(): void;
+  _actualCanvas: HTMLCanvasElement;
+}
+
+/** The parts of maplibre-gl-leaflet's layer that `settleAfterZoom` uses; the library doesn't type them. */
+interface LayerInternals {
+  _map: LeafletMap | null;
+  _glMap: GlMapInternals | null;
+  _resizeContainer(): void;
+  _zoomEnd(): void;
+}
+
+/**
+ * Replaces the layer's own end-of-zoom step. During a zoom animation Leaflet scales the GL canvas like a
+ * bitmap; the library then puts the canvas back at scale 1 before maplibre has drawn the new zoom, so one
+ * frame shows stale tiles at the wrong size. Here the scaled canvas stays until maplibre has drawn.
+ */
+function settleAfterZoom(this: LayerInternals) {
+  L.Util.requestAnimFrame(() => {
+    const { _map: map, _glMap: gl } = this;
+
+    if (!map || !gl) return;
+
+    const center = map.getCenter();
+    const offset = map.latLngToContainerPoint(map.getBounds().getNorthWest());
+    let settled = false;
+
+    const settle = () => {
+      if (settled || !this._glMap) return;
+
+      settled = true;
+      L.DomUtil.setTransform(gl._actualCanvas, offset, 1);
+      this._zoomEnd();
+    };
+
+    this._resizeContainer();
+    gl.once("render", settle);
+    window.setTimeout(settle, SETTLE_TIMEOUT_MS);
+    gl.jumpTo({ center, zoom: map.getZoom() - 1 });
+    gl.triggerRepaint();
+  });
+}
+
 /** Draws the vector basemap under everything else, once maplibre-gl has loaded. Until then the frame shows land. */
 function VectorBasemap() {
   const map = useMap();
@@ -29,7 +89,15 @@ function VectorBasemap() {
     void loadVectorLayer().then((maplibreGL) => {
       if (removed) return;
 
-      layer = maplibreGL({ style: MAP_STYLE, attributionControl: false }).addTo(map);
+      layer = maplibreGL({
+        style: MAP_STYLE,
+        attributionControl: false,
+        pixelRatio: Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO),
+        fadeDuration: LABEL_FADE_MS,
+      });
+      // Set before adding: the layer reads it when it joins the map.
+      Object.assign(layer, { _transitionEnd: settleAfterZoom });
+      layer.addTo(map);
     });
 
     return () => {
@@ -75,7 +143,11 @@ function FollowFrameSize() {
   const map = useMap();
 
   useEffect(() => {
-    const observer = new ResizeObserver(() => map.invalidateSize());
+    // Zero-sized while the persistent map is between pages; resizing then would lose its place.
+    const observer = new ResizeObserver(() => {
+      if (map.getContainer().clientWidth > 0) map.invalidateSize();
+    });
+
     observer.observe(map.getContainer());
 
     return () => observer.disconnect();
@@ -83,6 +155,9 @@ function FollowFrameSize() {
 
   return null;
 }
+
+// Street level; the vector tiles stop at 14, so going deeper only draws the same data larger.
+const MAX_ZOOM = 18;
 
 export type MapView = Pick<MapContainerProps, "center" | "zoom" | "bounds" | "boundsOptions">;
 
@@ -116,7 +191,7 @@ export function BaseMap({
       zoomControl={false}
       attributionControl={false}
       minZoom={2}
-      maxZoom={19}
+      maxZoom={MAX_ZOOM}
       worldCopyJump
       dragging={interactive}
       touchZoom={interactive}

@@ -1,7 +1,6 @@
 import type { Location, LocationIcon } from "@location-manager/shared";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import type { Map as LeafletMap } from "leaflet";
 import { type ReactNode, type RefObject, useEffect, useEffectEvent, useRef, useState } from "react";
 import type { SheetSnap } from "../../components/bottom-sheet";
 import { Button, buttonClassName } from "../../components/button";
@@ -17,6 +16,7 @@ import {
 } from "../../features/locations/location-draft";
 import { FloatingMapControls, MapToolbar } from "../../features/locations/map-controls";
 import { CategoryChips, filterPlaces, PlaceList, PlaceSearch, sortPlaces } from "../../features/locations/place-list";
+import { MapSurface, useMapHost } from "../../features/locations/map-host";
 import { type MapFocus, PlacesMap, type PreviewPlace } from "../../features/locations/places-map";
 import { locationsQuery } from "../../features/locations/queries";
 import { useArrivals } from "../../features/locations/use-arrivals";
@@ -107,7 +107,7 @@ function MapPage() {
   const mobile = useIsMobile();
   const pickMethod: PickMethod = mobile ? "add-here" : "click";
   const arrivals = useArrivals(locations.data);
-  const [map, setMap] = useState<LeafletMap | null>(null);
+  const { map } = useMapHost();
   const [draft, setDraft] = useState<LocationDraft>(EMPTY_DRAFT);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [focus, setFocus] = useState<MapFocus | null>(null);
@@ -256,11 +256,9 @@ function MapPage() {
     />
   );
 
-  // The first view fits the places, so the map waits for them (or for the load to fail).
-  const mapReady = places !== undefined || locations.isError;
-
-  const frame = mapReady && (
+  const frame = (
     <>
+      <MapSurface />
       <PlacesMap
         locations={places ?? []}
         arrivals={arrivals}
@@ -272,7 +270,6 @@ function MapPage() {
         actions={{ onEdit: startEdit, onDelete: setPendingDelete }}
         onPlaceOpen={handlePlaceOpen}
         onPlaceClose={handlePlaceClose}
-        mapRef={setMap}
       />
       {places?.length === 0 && !preview && <EmptyMapCard pickMethod={pickMethod} />}
       {mobile && (

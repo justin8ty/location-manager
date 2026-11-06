@@ -24,7 +24,9 @@ function classIn(...classes: string[]): FilterSpecification {
   return ["in", ["get", "class"], ["literal", classes]];
 }
 
-const MINOR_ROADS = classIn("minor", "service", "tertiary");
+// Service roads (alleys, car parks) only appear once the street is the subject.
+const MINOR_ROADS = classIn("minor", "tertiary");
+const SERVICE_ROADS = classIn("service");
 const MAJOR_ROADS = classIn("primary", "secondary", "trunk");
 const MOTORWAYS = classIn("motorway");
 const ROUND = { "line-cap": "round", "line-join": "round" } as const;
@@ -59,8 +61,8 @@ export const MAP_STYLE: StyleSpecification = {
       type: "fill",
       source: SOURCE,
       "source-layer": "building",
-      minzoom: 14,
-      paint: { "fill-color": "#e2dacb", "fill-outline-color": "#d3c9b6" },
+      minzoom: 16,
+      paint: { "fill-color": "#e2dacb" },
     },
     {
       id: "rail",
@@ -75,10 +77,20 @@ export const MAP_STYLE: StyleSpecification = {
       type: "line",
       source: SOURCE,
       "source-layer": "transportation",
-      minzoom: 12,
+      minzoom: 13,
       filter: MINOR_ROADS,
       layout: ROUND,
       paint: { "line-color": "#fbf8f1", "line-width": roadWidth(0.3, 7) },
+    },
+    {
+      id: "road-service",
+      type: "line",
+      source: SOURCE,
+      "source-layer": "transportation",
+      minzoom: 16,
+      filter: SERVICE_ROADS,
+      layout: ROUND,
+      paint: { "line-color": "#fbf8f1", "line-width": roadWidth(0.3, 4) },
     },
     {
       id: "road-major-casing",
@@ -127,7 +139,7 @@ export const MAP_STYLE: StyleSpecification = {
       type: "symbol",
       source: SOURCE,
       "source-layer": "transportation_name",
-      minzoom: 14,
+      minzoom: 15,
       layout: {
         "symbol-placement": "line",
         "text-field": LABEL_TEXT,
@@ -141,7 +153,8 @@ export const MAP_STYLE: StyleSpecification = {
       type: "symbol",
       source: SOURCE,
       "source-layer": "place",
-      minzoom: 12,
+      minzoom: 13,
+      maxzoom: 16,
       filter: classIn("neighbourhood", "quarter", "suburb"),
       layout: {
         "text-field": LABEL_TEXT,

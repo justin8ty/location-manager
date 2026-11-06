@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AppShell } from "../components/app-shell";
 import { currentUserQuery } from "../features/auth/session";
+import { MapHostProvider } from "../features/locations/map-host";
 
 /** Protected pages: visitors without a session are sent to login, then brought back. */
 export const Route = createFileRoute("/_auth")({
@@ -18,8 +19,10 @@ function AuthenticatedLayout() {
   const { user } = Route.useRouteContext();
 
   return (
-    <AppShell user={user}>
-      <Outlet />
-    </AppShell>
+    <MapHostProvider>
+      <AppShell user={user}>
+        <Outlet />
+      </AppShell>
+    </MapHostProvider>
   );
 }

@@ -1,60 +1,25 @@
 import type { Location, LocationIcon } from "@location-manager/shared";
+import { LeafletContext } from "@react-leaflet/core";
 import {
   type LatLng,
   type LatLngTuple,
   type LeafletEventHandlerFnMap,
-  latLngBounds,
-  type Map as LeafletMap,
   type Marker as LeafletMarker,
   type MarkerClusterGroup as LeafletClusterGroup,
 } from "leaflet";
-import { type ReactNode, type Ref, type RefObject, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
+import { type ReactNode, type RefObject, useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { Marker, Popup, useMap } from "react-leaflet";
 import { prefersReducedMotion } from "../../lib/motion";
-import { BaseMap, type MapView } from "./base-map";
+import { fitPlaces } from "./map-view";
+import { useMapHost } from "./map-host";
 import { MarkerClusterGroup, markerPlaceIcons } from "./marker-cluster-group";
 import { type PinState, placePin, previewPin } from "./pins";
 import { type PlaceActions, PlacePopup } from "./place-popup";
 
-const KUALA_LUMPUR: LatLngTuple = [3.139, 101.6869];
-const DEFAULT_ZOOM = 11;
-const MAX_FIT_ZOOM = 15;
 const FOCUS_ZOOM = 15;
-const FIT_PADDING = 56;
 const FLY_SECONDS = 0.6;
 const SELECTED_Z_OFFSET = 1000;
 const POPUP_WIDTH = 278;
-
-function toLatLng(location: Location): LatLngTuple {
-  return [location.latitude, location.longitude];
-}
-
-/** Every place in view, or Kuala Lumpur when there are none. */
-export function placesView(locations: readonly Location[]): MapView {
-  if (locations.length === 0) return { center: KUALA_LUMPUR, zoom: DEFAULT_ZOOM };
-
-  return {
-    bounds: latLngBounds(locations.map(toLatLng)),
-    boundsOptions: { padding: [FIT_PADDING, FIT_PADDING], maxZoom: MAX_FIT_ZOOM },
-  };
-}
-
-/** Moves the map to show `locations`, or Kuala Lumpur when there are none. */
-export function fitPlaces(map: LeafletMap, locations: readonly Location[]) {
-  const animate = !prefersReducedMotion();
-
-  if (locations.length === 0) {
-    map.setView(KUALA_LUMPUR, DEFAULT_ZOOM, { animate });
-
-    return;
-  }
-
-  map.fitBounds(latLngBounds(locations.map(toLatLng)), {
-    padding: [FIT_PADDING, FIT_PADDING],
-    maxZoom: MAX_FIT_ZOOM,
-    animate,
-  });
-}
 
 /**
  * A request to move the map: fly to one place and open it, or fit a set of places.
@@ -73,6 +38,9 @@ function PickOnClick({ onPick }: { onPick: (latitude: number, longitude: number)
   });
 
   useEffect(() => {
+    const container = map.getContainer();
+    container.classList.add("is-picking");
+
     let popupOpen = false;
     let clickClosesPopup = false;
 
@@ -96,6 +64,7 @@ function PickOnClick({ onPick }: { onPick: (latitude: number, longitude: number)
     map.on(handlers);
 
     return () => {
+      container.classList.remove("is-picking");
       map.off(handlers);
     };
   }, [map]);
@@ -240,7 +209,6 @@ interface PlacesMapProps {
   /** A place's popup opened (it's now selected) or closed. */
   onPlaceOpen: (id: string) => void;
   onPlaceClose: (id: string) => void;
-  mapRef?: Ref<LeafletMap>;
   children?: ReactNode;
 }
 
@@ -252,10 +220,17 @@ function pinState(id: string, selectedId: string | null, hoveredId: string | nul
   return "rest";
 }
 
-/** The user's places as pins and clusters on the basemap, with popups, a preview pin and click-to-pick. */
+/**
+ * The user's places as pins and clusters on the persistent map (see `MapHostProvider`), with popups, a preview
+ * pin and click-to-pick. Everything here leaves the map when the page does.
+ */
 export function PlacesMap(props: PlacesMapProps) {
-  // Only the first view is computed: later changes to the places must not yank the map around.
-  const [view] = useState(() => placesView(props.locations));
+  const { leaflet } = useMapHost();
+
+  return leaflet && <LeafletContext value={leaflet}><PlacesLayers {...props} /></LeafletContext>;
+}
+
+function PlacesLayers(props: PlacesMapProps) {
   const [animateClusters] = useState(() => !prefersReducedMotion());
   const markers = useRef(new Map<string, LeafletMarker>());
   const clusters = useRef<LeafletClusterGroup>(null);
@@ -263,7 +238,7 @@ export function PlacesMap(props: PlacesMapProps) {
   const preview = useMemo(() => (previewIcon ? previewPin(previewIcon) : null), [previewIcon]);
 
   return (
-    <BaseMap view={view} scaleBar mapRef={props.mapRef} className={`places-map ${props.onPick ? "is-picking" : ""}`}>
+    <>
       {props.onPick && <PickOnClick onPick={props.onPick} />}
 
       <MarkerClusterGroup ref={clusters} animate={animateClusters}>
@@ -289,6 +264,6 @@ export function PlacesMap(props: PlacesMapProps) {
       <RefreshClusters clusters={clusters} locations={props.locations} />
       <FocusController focus={props.focus} markers={markers} clusters={clusters} />
       {props.children}
-    </BaseMap>
+    </>
   );
 }
