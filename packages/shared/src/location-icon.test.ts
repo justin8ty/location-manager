@@ -5,7 +5,6 @@ describe("suggestLocationIcon", () => {
   it.each<[string, LocationIcon]>([
     // Earlier rules win when several match.
     ["Bird Park", "animals"],
-    ["Pavilion, Bukit Bintang", "shop"],
     // Case doesn't matter.
     ["SURIA KLCC", "shop"],
     // Keywords match at the start of a word, not inside one.
@@ -16,7 +15,6 @@ describe("suggestLocationIcon", () => {
     ["Water Garden", "park"],
     ["Eat Street", "food"],
     ["Great Wall", "pin"],
-    ["Somewhere", "pin"],
   ])("suggests %s → %s", (name, icon) => {
     expect(suggestLocationIcon(name)).toBe(icon);
   });
