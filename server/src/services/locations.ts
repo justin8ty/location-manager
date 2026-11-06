@@ -53,22 +53,53 @@ export async function createLocation(db: Db, userId: string, input: CreateLocati
   return toLocation(row);
 }
 
-/** Saves all the locations in one transaction: either every one is saved or none is. */
+/** What identifies a place for import: the same name at the same coordinates. */
+function duplicateKey({ name, latitude, longitude }: Pick<CreateLocationRequest, "name" | "latitude" | "longitude">) {
+  return JSON.stringify([name, latitude, longitude]);
+}
+
+export interface CreatedLocations {
+  created: Location[];
+  /** Inputs left out as duplicates of an existing place, or of an earlier input. */
+  skipped: number;
+}
+
+/**
+ * Saves the locations in one transaction: either every new one is saved or none is. An input that matches a
+ * place the user already has (or an earlier input) is skipped, so importing a file twice adds nothing.
+ */
 export async function createLocations(
   db: Db,
   userId: string,
   inputs: CreateLocationRequest[],
-): Promise<Location[]> {
+): Promise<CreatedLocations> {
   return db.transaction(async (tx) => {
+    const existing = await tx
+      .select({ name: locations.name, latitude: locations.latitude, longitude: locations.longitude })
+      .from(locations)
+      .where(eq(locations.userId, userId));
+
+    const known = new Set(existing.map(duplicateKey));
+
+    const fresh = inputs.filter((input) => {
+      const key = duplicateKey(input);
+
+      if (known.has(key)) return false;
+
+      known.add(key);
+
+      return true;
+    });
+
     const created: Location[] = [];
 
-    for (let start = 0; start < inputs.length; start += INSERT_BATCH_SIZE) {
-      const batch = inputs.slice(start, start + INSERT_BATCH_SIZE).map((input) => newRow(userId, input));
+    for (let start = 0; start < fresh.length; start += INSERT_BATCH_SIZE) {
+      const batch = fresh.slice(start, start + INSERT_BATCH_SIZE).map((input) => newRow(userId, input));
       const rows = await tx.insert(locations).values(batch).returning(locationColumns);
       created.push(...rows.map(toLocation));
     }
 
-    return created;
+    return { created, skipped: inputs.length - fresh.length };
   });
 }
 

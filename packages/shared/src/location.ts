@@ -60,7 +60,10 @@ export const locationsResponseSchema = z.object({ locations: z.array(locationSch
 export type LocationsResponse = z.infer<typeof locationsResponseSchema>;
 
 export const uploadResponseSchema = z.object({
+  /** How many places were added. */
   count: z.number().int(),
+  /** Rows left out because the user already had a place with the same name and coordinates. */
+  skipped: z.number().int(),
   locations: z.array(locationSchema),
 });
 

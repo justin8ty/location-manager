@@ -70,6 +70,7 @@ Full-stack app where authenticated users manage their own locations: add them ma
 - On success: the new markers are added to the cached locations and appear on the map. Success toast for 3 s; on `/upload` it offers a "View on map" link.
 - On any error: error toast for 3 s with the reason.
 - Upload is all-or-nothing. Any invalid row rejects the whole file and nothing is saved.
+- Duplicates are skipped: a row with the same name and coordinates as a place the user already has (or as an earlier row) isn't added. The toast and the result card say how many were skipped; a file with nothing new says so and changes nothing.
 - Uploaded locations get the icon suggested by their name.
 
 #### TXT Format
@@ -117,7 +118,7 @@ Base path `/api`. JSON unless noted. Every route except register/login requires 
 | POST | `/locations` | `{ name, latitude, longitude, icon? }` | `201 { location }` |
 | PATCH | `/locations/:id` | `{ name?, latitude?, longitude?, icon? }` (at least one field) | `200 { location }` |
 | DELETE | `/locations/:id` | — | `204` |
-| POST | `/locations/upload` | multipart, field `file` | `201 { count, locations }` |
+| POST | `/locations/upload` | multipart, field `file` | `201 { count, skipped, locations }` |
 | GET | `/health` | — | `200 { ok: true }` |
 
 `user` = `{ id, email }`. `location` = `{ id, name, latitude, longitude, icon, createdAt }`.
@@ -170,7 +171,7 @@ export const locations = pgTable(
 );
 ```
 
-Duplicate locations are allowed. `icon` is validated by the shared zod enum, not the database, so adding an icon needs no migration.
+Adding a place by hand can create a duplicate; only imports skip them (ADR-11). `icon` is validated by the shared zod enum, not the database, so adding an icon needs no migration.
 
 ## Project Structure
 
@@ -283,3 +284,8 @@ To deploy: Cloudflare Pages (+ Pages Function) proxying `/api/*` to Google Cloud
 - **Decision:** The basemap is OpenFreeMap vector tiles drawn by `maplibre-gl` inside Leaflet (`@maplibre/maplibre-gl-leaflet`), with our own style (`map-style.ts`). Markers, popups and clusters stay in Leaflet.
 - **Why:** Raster tiles can only be recoloured with CSS filters; vector tiles let the map use the app's colours. Leaflet and react-leaflet stay, as the brief requires.
 - **Trade-off:** `maplibre-gl` adds about 800 KB, so it is lazy-loaded after first render (the map frame shows land colour until then). The map depends on a free tile service with no fallback basemap: if OpenFreeMap is down, pins still work but the background is blank.
+
+### ADR-11: Imports skip duplicates
+- **Decision:** An import skips a row whose name and coordinates match a place the user already has, or an earlier row in the file. The response reports `skipped`.
+- **Why:** Importing the same file twice shouldn't double the list.
+- **Trade-off:** The check is in the service, not a unique index, so manual adds can still duplicate and two simultaneous imports could both insert a row.

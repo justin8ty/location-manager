@@ -13,7 +13,7 @@ import { MapSurface, useMapHost } from "../../features/locations/map-host";
 import { type MapFocus, PlacesMap } from "../../features/locations/places-map";
 import { locationsQuery } from "../../features/locations/queries";
 import { useArrivals } from "../../features/locations/use-arrivals";
-import { useZipImport } from "../../features/upload/use-zip-import";
+import { formatSkipped, useZipImport } from "../../features/upload/use-zip-import";
 import { ZipDropzone } from "../../features/upload/zip-dropzone";
 import { ApiError } from "../../lib/api";
 import { useIsMobile } from "../../lib/use-media-query";
@@ -70,12 +70,17 @@ function LastImport({ upload }: { upload: ReturnType<typeof useZipImport>["uploa
   const fileName = upload.variables?.name;
 
   if (upload.isSuccess) {
+    const { count, skipped, locations } = upload.data;
+
     return (
       <div role="status" className="flex flex-col gap-2 rounded-[10px] border border-rule bg-field p-4">
         <p className="font-medium break-words text-ink">
-          Added {formatPlaceCount(upload.data.count)} from {fileName}
+          {count === 0
+            ? `Nothing new in ${fileName}`
+            : `Added ${formatPlaceCount(count)} from ${fileName}`}
         </p>
-        <ImportedList locations={upload.data.locations} />
+        {count > 0 && <ImportedList locations={locations} />}
+        {skipped > 0 && <p className="text-meta text-ink-2">{formatSkipped(skipped)}: already on your map.</p>}
       </div>
     );
   }

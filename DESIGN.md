@@ -165,6 +165,8 @@ Initial view: fit to all pins, or KL at zoom 11 when there are none (as in the s
     - the imported pins drop in, one after another (30ms apart, up to 1s in total);
     - the map fits to them;
     - the column result shows "Added 7 places from locations.zip" with a short list of what was added.
+    - rows already on the map are skipped: the result adds a line like "3 duplicates skipped: already on your map."
+  - **When nothing is new:** the toast says "Nothing new to add" and the result card "Nothing new in locations.zip"; the map doesn't move.
   - **On error:** the column result is an error card in `--accent` with the reason, plus the line-numbered details in mono (`Line 3: latitude 300 is out of range (−90 to 90)`), up to 5 lines.
 - **Spec requirements still apply:** the success and error toasts last 3 seconds, and the success toast has a **View on map** button.
 

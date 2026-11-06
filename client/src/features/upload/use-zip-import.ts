@@ -9,6 +9,11 @@ import { updateCachedLocations } from "../locations/queries";
 /** Upload results are toasted for 3 seconds (SPEC: File Upload). */
 export const UPLOAD_TOAST_MS = 3000;
 
+/** "1 duplicate skipped", for the rows an import left out because the place was already there. */
+export function formatSkipped(skipped: number): string {
+  return skipped === 1 ? "1 duplicate skipped" : `${skipped} duplicates skipped`;
+}
+
 interface ZipImportOptions {
   /** Whether the success toast offers a way to the map (pointless on the map itself). */
   offerViewOnMap: boolean;
@@ -32,14 +37,25 @@ export function useZipImport({ offerViewOnMap, onImported }: ZipImportOptions) {
 
       return apiRequest("POST", "/locations/upload", uploadResponseSchema, body);
     },
-    onSuccess: ({ count, locations }, file) => {
+    onSuccess: ({ count, skipped, locations }, file) => {
+      if (count === 0) {
+        toasts.add({
+          type: "success",
+          title: "Nothing new to add",
+          description: `${file.name} only has places you already have`,
+          timeout: UPLOAD_TOAST_MS,
+        });
+
+        return;
+      }
+
       updateCachedLocations(queryClient, (current) => current.concat(locations));
       onImported(locations);
 
       const toastId: string = toasts.add({
         type: "success",
         title: `Added ${formatPlaceCount(count)}`,
-        description: `from ${file.name}`,
+        description: skipped > 0 ? `from ${file.name} · ${formatSkipped(skipped)}` : `from ${file.name}`,
         timeout: UPLOAD_TOAST_MS,
         actionProps: offerViewOnMap
           ? {

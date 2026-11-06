@@ -50,6 +50,7 @@ describe("POST /api/locations/upload", () => {
 
     const body = uploadResponseSchema.parse(res.body);
     expect(body.count).toBe(10);
+    expect(body.skipped).toBe(0);
     expect(body.locations[0]).toMatchObject({
       name: "Suria KLCC",
       latitude: 3.157324409,
@@ -58,6 +59,38 @@ describe("POST /api/locations/upload", () => {
     });
     expect(idsOf(await listLocations(alice))).toEqual(idsOf(body.locations));
     expect(await listLocations(bob)).toEqual([]);
+  });
+
+  it("skips places the user already has, so importing the same file twice adds nothing", async () => {
+    const alice = await signedInAgent("alice@example.com");
+    const bob = await signedInAgent("bob@example.com");
+    await upload(alice, sampleZip);
+
+    const again = await upload(alice, sampleZip);
+
+    expect(again.status).toBe(201);
+    expect(uploadResponseSchema.parse(again.body)).toMatchObject({ count: 0, skipped: 10, locations: [] });
+    expect(await listLocations(alice)).toHaveLength(10);
+
+    // Another user's places are theirs alone.
+    expect(uploadResponseSchema.parse((await upload(bob, sampleZip)).body).count).toBe(10);
+  });
+
+  it("skips repeats within a file, but keeps the same name at different coordinates", async () => {
+    const alice = await signedInAgent("alice@example.com");
+    await upload(alice, zipOf("Cafe,3.1,101.7\n"));
+
+    const rows = ["Cafe,3.1,101.7", "Cafe,3.2,101.7", "Shop,3.3,101.7", "Shop,3.3,101.7"];
+    const res = await upload(alice, zipOf(rows.join("\n")));
+
+    const body = uploadResponseSchema.parse(res.body);
+    expect(body.count).toBe(2);
+    expect(body.skipped).toBe(2);
+    expect(body.locations.map((location) => [location.name, location.latitude])).toEqual([
+      ["Cafe", 3.2],
+      ["Shop", 3.3],
+    ]);
+    expect(await listLocations(alice)).toHaveLength(3);
   });
 
   it("saves more rows than PostgreSQL can bind in one statement", async () => {

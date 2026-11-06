@@ -45,8 +45,8 @@ export function createLocationsRouter(db: Db, sessions: Sessions) {
 
   router.post("/upload", receiveZip, async (req, res) => {
     const inputs = parseLocationsText(extractTextFile(uploadedZip(req)));
-    const locations = await createLocations(db, authenticatedUserId(req), inputs);
-    const body: UploadResponse = { count: locations.length, locations };
+    const { created, skipped } = await createLocations(db, authenticatedUserId(req), inputs);
+    const body: UploadResponse = { count: created.length, skipped, locations: created };
     res.status(201).json(body);
   });
 
