@@ -12,7 +12,7 @@ export type PickMethod = "click" | "add-here";
 
 const HINTS: Record<PickMethod, { adding: string; editing: string }> = {
   click: { adding: "Or click the map", editing: "Click the map to move it" },
-  "add-here": { adding: "Or pan the map and tap Add here", editing: "Pan the map and tap Add here to move it" },
+  "add-here": { adding: "Or tap Add here", editing: "Tap Add here to move it" },
 };
 
 const ERROR_ID = "composer-error";
@@ -80,7 +80,7 @@ export function Composer(props: ComposerProps) {
       noValidate
       onSubmit={handleSubmit}
       aria-label={editing ? `Edit ${editing.name}` : "Add a place"}
-      className={`grid h-[256px] shrink-0 grid-cols-[44px_1fr_1.25fr] content-between gap-x-2.5 rounded-[10px] border bg-field p-4 ${editing ? "border-accent/50" : "border-rule"}`}
+      className={`grid h-[260px] shrink-0 grid-cols-[44px_1fr_1.25fr] content-between gap-x-2.5 rounded-[10px] border bg-field p-4 ${editing ? "border-accent/50" : "border-rule"}`}
     >
       <div className="flex flex-col gap-1">
         <span className="caps" aria-hidden>
@@ -131,12 +131,12 @@ export function Composer(props: ComposerProps) {
         aria-describedby={ERROR_ID}
       />
 
-      <div className="col-span-3 h-[18px] text-center">
-        <p id={ERROR_ID} aria-live="polite" className="truncate text-meta text-accent">
+      <div className="col-span-3 h-[22px] text-center">
+        <p id={ERROR_ID} aria-live="polite" className="truncate text-meta leading-[22px] text-accent">
           {message}
         </p>
         {!message && pickHint && (
-          <p aria-hidden className="truncate text-meta text-ink-2">
+          <p aria-hidden className="truncate text-input text-ink-2">
             {pickHint}
           </p>
         )}
