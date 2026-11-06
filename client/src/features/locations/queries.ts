@@ -11,7 +11,7 @@ import { ApiError, apiRequest, apiRequestNoContent } from "../../lib/api";
 export const locationsQuery = queryOptions({
   queryKey: ["locations"],
   queryFn: async () => (await apiRequest("GET", "/locations", locationsResponseSchema)).locations,
-  // Kept current by create and delete; an upload invalidates it to load the new rows.
+  // Kept current by create, update, delete and import, which all write their results into it.
   staleTime: Number.POSITIVE_INFINITY,
 });
 

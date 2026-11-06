@@ -1,54 +1,22 @@
-import { Button } from "@cloudflare/kumo";
-import { FileZipIcon } from "@phosphor-icons/react";
-import { type ChangeEvent, type DragEvent, useRef, useState } from "react";
+import { FileZipIcon, UploadSimpleIcon } from "@phosphor-icons/react";
+import { type ChangeEvent, useRef } from "react";
+import { Button } from "../../components/button";
+import { useFileDrop } from "./use-file-drop";
 
 interface ZipDropzoneProps {
-  /** The file being uploaded, if any; the zone is disabled meanwhile. */
-  uploadingFileName: string | null;
-  onFile: (file: File) => void;
-  /** Called when more than one file is dropped at once. */
-  onMultipleFiles: () => void;
+  /** The file being imported, if any; the zone is disabled meanwhile. */
+  importingFileName: string | null;
+  onFiles: (files: FileList) => void;
 }
 
 /** Accepts one ZIP file, dropped onto the zone or chosen with the button. */
-export function ZipDropzone({ uploadingFileName, onFile, onMultipleFiles }: ZipDropzoneProps) {
+export function ZipDropzone({ importingFileName, onFiles }: ZipDropzoneProps) {
   const input = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
-  const uploading = uploadingFileName !== null;
-
-  function accept(files: FileList) {
-    const [file] = files;
-
-    if (!file) return;
-
-    if (files.length > 1) onMultipleFiles();
-    else onFile(file);
-  }
-
-  function handleDragOver(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = uploading ? "none" : "copy";
-    setDragging(!uploading);
-  }
-
-  function handleDragLeave(event: DragEvent<HTMLDivElement>) {
-    // Moving between the zone's own children fires dragleave too.
-    const next = event.relatedTarget;
-
-    if (next instanceof Node && event.currentTarget.contains(next)) return;
-
-    setDragging(false);
-  }
-
-  function handleDrop(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-    setDragging(false);
-
-    if (!uploading) accept(event.dataTransfer.files);
-  }
+  const importing = importingFileName !== null;
+  const { dragging, handlers } = useFileDrop(onFiles, importing);
 
   function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    if (event.target.files) accept(event.target.files);
+    if (event.target.files) onFiles(event.target.files);
 
     // Lets the same file be chosen again, e.g. after fixing it.
     event.target.value = "";
@@ -56,36 +24,29 @@ export function ZipDropzone({ uploadingFileName, onFile, onMultipleFiles }: ZipD
 
   return (
     <div
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      {...handlers}
       data-dragging={dragging || undefined}
-      className="flex flex-col gap-4 rounded-xl border border-dashed border-kumo-interact bg-kumo-elevated p-5 transition-colors duration-150 data-dragging:border-kumo-brand data-dragging:bg-kumo-info-tint sm:flex-row sm:items-center sm:p-6"
+      className="flex min-h-[176px] flex-col items-center justify-center gap-3 rounded-[10px] border border-dashed border-[#c9bfae] bg-field p-5 text-center transition-colors duration-[120ms] data-dragging:border-accent data-dragging:bg-accent-wash"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-4">
-        <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-kumo-base text-kumo-subtle ring ring-kumo-line">
-          <FileZipIcon size={24} />
-        </div>
-        <div className="flex min-w-0 flex-col gap-0.5" aria-live="polite">
-          {uploading ? (
-            <>
-              <span className="font-medium text-kumo-default">Uploading</span>
-              <span className="text-sm break-all text-kumo-subtle">{uploadingFileName}</span>
-            </>
-          ) : (
-            <>
-              {/* Touch screens can't drag files in. */}
-              <span className="font-medium text-kumo-default">
-                <span className="[@media(hover:none)]:hidden">Drop a ZIP file here</span>
-                <span className="[@media(hover:hover)]:hidden">Choose a ZIP file</span>
-              </span>
-              <span className="text-sm text-kumo-subtle">One .txt file inside, up to 5 MB</span>
-            </>
-          )}
-        </div>
+      <FileZipIcon size={32} className="text-ink-2" aria-hidden />
+      <div className="flex flex-col" aria-live="polite">
+        {importing ? (
+          <>
+            <span className="font-medium text-ink">Importing</span>
+            <span className="text-meta break-all text-ink-2">{importingFileName}</span>
+          </>
+        ) : (
+          <>
+            {/* Touch screens can't drag files in. */}
+            <span className="font-medium text-ink">
+              <span className="[@media(hover:none)]:hidden">Drop a ZIP file here</span>
+              <span className="[@media(hover:hover)]:hidden">Choose a ZIP file</span>
+            </span>
+            <span className="text-meta text-ink-2">One .txt file inside, up to 5 MB</span>
+          </>
+        )}
       </div>
-
-      <Button variant="secondary" className="self-start sm:self-auto" loading={uploading} onClick={() => input.current?.click()}>
+      <Button icon={UploadSimpleIcon} loading={importing} onClick={() => input.current?.click()}>
         Choose file
       </Button>
       <input ref={input} type="file" accept=".zip,application/zip" hidden onChange={handleChange} />
