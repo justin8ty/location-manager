@@ -112,12 +112,13 @@ The same as desktop, but the column is 340px wide and the cursor readout is hidd
 - **Map frame:** 8px inset from the screen edges, radius 16px. The toolbar becomes floating buttons over the top of the map (Fit all, zoom). The page title and readout are hidden.
 - **Bottom sheet:**
   - the **Map** tab: it holds the column without the composer (header, search, category chips, list); the Import button is left out, since Import is a tab;
-  - drag the handle between three heights: collapsed (handle and header, 92px), half (46vh) and full (82vh);
+  - drag the handle between three heights: collapsed (handle and header, 68px), half (46vh) and full (82vh);
   - tapping the handle cycles through them;
   - selecting a place sets it to half;
   - the map resizes to fit.
+- **Sheet header:** 44px on phones (16px title), 68px beside the map (22px title).
 - **Add place tab:**
-  - the sheet is replaced by a fixed panel under the map holding the composer;
+  - the same bottom sheet, with its own height that also starts at half, titled "Add place" (or "Edit place") and holding the composer;
   - a fixed crosshair sits in the centre of the map;
   - the user pans the map under it and taps **Add here**, a primary button floating at the bottom-centre of the map frame, which sets lat/lng to the map centre;
   - the composer's pick hint reads `Or tap Add here`;

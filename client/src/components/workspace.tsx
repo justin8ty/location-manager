@@ -9,8 +9,6 @@ interface WorkspaceProps {
   columnLabel: string;
   /** The column's title bar; on phones it stays fixed above the sheet's scrolling content. */
   columnHeader: ReactNode;
-  /** Shown on phones instead of the bottom sheet, under the map. */
-  phonePanel?: ReactNode;
   /** The bar above the map frame on wider screens. */
   toolbar: ReactNode;
   /** The map, and anything floating over it. */
@@ -38,13 +36,9 @@ export function Workspace(props: WorkspaceProps) {
     return (
       <div className="flex h-full flex-col">
         <div className="flex min-h-0 flex-1 flex-col p-2">{frame}</div>
-        {props.phonePanel ? (
-          <div className="shrink-0 px-2 pb-2">{props.phonePanel}</div>
-        ) : (
-          <BottomSheet snap={props.sheetSnap} onSnapChange={props.onSheetSnapChange} label={props.columnLabel} header={props.columnHeader}>
-            {props.column}
-          </BottomSheet>
-        )}
+        <BottomSheet snap={props.sheetSnap} onSnapChange={props.onSheetSnapChange} label={props.columnLabel} header={props.columnHeader}>
+          {props.column}
+        </BottomSheet>
       </div>
     );
   }

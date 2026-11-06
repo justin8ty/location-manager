@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { type ReactNode, type RefObject, useEffect, useEffectEvent, useRef, useState } from "react";
 import type { SheetSnap } from "../../components/bottom-sheet";
 import { Button, buttonClassName } from "../../components/button";
+import { ColumnHeader } from "../../components/column-header";
 import { Workspace } from "../../components/workspace";
 import { Composer, type PickMethod } from "../../features/locations/composer";
 import { DeleteLocationDialog } from "../../features/locations/delete-location-dialog";
@@ -87,15 +88,17 @@ function LoadError({ error, onRetry }: { error: Error; onRetry: () => void }) {
   );
 }
 
-function ColumnHeader() {
+/** Beside the map this names the app; on phones the Add place tab names what it's doing. */
+function PlacesHeader({ phoneAdding, editing }: { phoneAdding: boolean; editing: boolean }) {
+  if (phoneAdding) return <ColumnHeader title={editing ? "Edit place" : "Add place"} />;
+
   return (
-    <header className="flex h-[68px] items-center justify-between gap-3 px-5">
-      <h1 className="text-title text-ink">JustNaik Places</h1>
+    <ColumnHeader title="JustNaik Places">
       {/* Phones have the Import tab. */}
       <Link to="/upload" className={`${buttonClassName({ variant: "secondary" })} max-tablet:hidden`}>
         Import
       </Link>
-    </header>
+    </ColumnHeader>
   );
 }
 
@@ -114,7 +117,9 @@ function MapPage() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<LocationIcon | null>(null);
-  const [sheetSnap, setSheetSnap] = useState<SheetSnap>("half");
+  // Each phone tab keeps its own sheet height; both start at half.
+  const [browseSnap, setBrowseSnap] = useState<SheetSnap>("half");
+  const [addSnap, setAddSnap] = useState<SheetSnap>("half");
   const nameInput = useRef<HTMLInputElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
 
@@ -130,6 +135,8 @@ function MapPage() {
   const listed = places && filterPlaces(sortPlaces(places), query, activeCategory);
   // On phones the Add place tab is where adding happens; the Map tab only browses.
   const phoneAdding = mobile && mode === "add";
+  const sheetSnap = phoneAdding ? addSnap : browseSnap;
+  const setSheetSnap = phoneAdding ? setAddSnap : setBrowseSnap;
   const position = draftPosition(draft);
   let preview: PreviewPlace | null = position && { position, icon: draft.icon };
 
@@ -247,7 +254,9 @@ function MapPage() {
     />
   );
 
-  const column = (
+  const column = phoneAdding ? (
+    <div className="px-5 pb-4">{composer}</div>
+  ) : (
     <MapColumn
       composer={mobile ? null : composer}
       searchInput={searchInput}
@@ -294,8 +303,8 @@ function MapPage() {
       {mobile && (
         <>
           <FloatingMapControls map={map} locations={places ?? []} />
-          {/* Aiming is for the Add place tab, and needs the map clear of an open place. */}
-          {phoneAdding && selectedId === null && (
+          {/* Aiming is for the Add place tab, and needs the map clear of an open place and not a sliver. */}
+          {phoneAdding && sheetSnap !== "full" && selectedId === null && (
             <>
               <Crosshair />
               <div className="pointer-events-none absolute inset-x-0 bottom-5 z-[1001] flex justify-center">
@@ -314,8 +323,7 @@ function MapPage() {
     <>
       <Workspace
         column={column}
-        columnHeader={<ColumnHeader />}
-        phonePanel={phoneAdding ? composer : undefined}
+        columnHeader={<PlacesHeader phoneAdding={phoneAdding} editing={editing !== null} />}
         columnLabel="Places"
         toolbar={<MapToolbar map={map} locations={places ?? []} />}
         frame={frame}

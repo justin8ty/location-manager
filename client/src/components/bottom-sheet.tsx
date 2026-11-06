@@ -4,8 +4,8 @@ export type SheetSnap = "collapsed" | "half" | "full";
 
 const SNAPS: readonly SheetSnap[] = ["collapsed", "half", "full"];
 
-// The handle (h-6) plus a page's 68px header: collapsed shows the title and nothing under it.
-const COLLAPSED_PX = 92;
+// The handle (24px) plus a page's 44px header: collapsed shows the title and nothing under it.
+const COLLAPSED_PX = 68;
 const HALF_SHARE = 0.46;
 const FULL_SHARE = 0.82;
 

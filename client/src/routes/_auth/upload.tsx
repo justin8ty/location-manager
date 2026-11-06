@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import type { SheetSnap } from "../../components/bottom-sheet";
+import { ColumnHeader } from "../../components/column-header";
 import { Workspace } from "../../components/workspace";
 import { formatPlaceCount } from "../../features/locations/format";
 import { FloatingMapControls, MapToolbar } from "../../features/locations/map-controls";
@@ -119,9 +120,7 @@ function UploadPage() {
   const places = locations.data ?? [];
 
   const columnHeader = (
-    <header className="flex h-[68px] items-center px-5">
-      <h1 className="text-title text-ink">Import</h1>
-    </header>
+    <ColumnHeader title="Import" />
   );
 
   const column = (
