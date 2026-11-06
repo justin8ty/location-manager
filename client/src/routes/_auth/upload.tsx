@@ -119,16 +119,17 @@ function UploadPage() {
   const places = locations.data ?? [];
   const mapReady = locations.data !== undefined || locations.isError;
 
+  const columnHeader = (
+    <header className="flex h-[68px] items-center px-5">
+      <h1 className="text-title text-ink">Import</h1>
+    </header>
+  );
+
   const column = (
-    <div className="flex flex-col tablet:h-full tablet:min-h-0">
-      <header className={`flex h-[68px] shrink-0 items-center bg-chrome px-5 ${mobile ? "sticky top-0 z-10" : ""}`}>
-        <h1 className="text-title text-ink">Import</h1>
-      </header>
-      <div className="flex flex-col gap-3 px-5 pb-5 tablet:min-h-0 tablet:flex-1 tablet:overflow-y-auto">
-        <ZipDropzone importingFileName={upload.isPending ? upload.variables.name : null} onFiles={importFiles} />
-        <FormatHelp />
-        {!upload.isPending && <LastImport upload={upload} />}
-      </div>
+    <div className="flex flex-col gap-3 px-5 pb-5 tablet:min-h-0 tablet:flex-1 tablet:overflow-y-auto">
+      <ZipDropzone importingFileName={upload.isPending ? upload.variables.name : null} onFiles={importFiles} />
+      <FormatHelp />
+      {!upload.isPending && <LastImport upload={upload} />}
     </div>
   );
 
@@ -152,6 +153,7 @@ function UploadPage() {
   return (
     <Workspace
       column={column}
+      columnHeader={columnHeader}
       columnLabel="Import"
       toolbar={<MapToolbar map={map} locations={places} />}
       frame={frame}

@@ -7,6 +7,8 @@ interface WorkspaceProps {
   /** What the page shows beside the map; on phones, in the bottom sheet. */
   column: ReactNode;
   columnLabel: string;
+  /** The column's title bar; on phones it stays fixed above the sheet's scrolling content. */
+  columnHeader: ReactNode;
   /** The bar above the map frame on wider screens. */
   toolbar: ReactNode;
   /** The map, and anything floating over it. */
@@ -34,7 +36,7 @@ export function Workspace(props: WorkspaceProps) {
     return (
       <div className="flex h-full flex-col">
         <div className="flex min-h-0 flex-1 flex-col p-2">{frame}</div>
-        <BottomSheet snap={props.sheetSnap} onSnapChange={props.onSheetSnapChange} label={props.columnLabel}>
+        <BottomSheet snap={props.sheetSnap} onSnapChange={props.onSheetSnapChange} label={props.columnLabel} header={props.columnHeader}>
           {props.column}
         </BottomSheet>
       </div>
@@ -44,7 +46,8 @@ export function Workspace(props: WorkspaceProps) {
   return (
     <div className="flex h-full">
       <aside aria-label={props.columnLabel} className="flex w-(--column-width) shrink-0 flex-col">
-        {props.column}
+        {props.columnHeader}
+        <div className="flex min-h-0 flex-1 flex-col">{props.column}</div>
       </aside>
       <section className="flex min-w-0 flex-1 flex-col pr-(--pane-gap) pb-(--pane-gap) pl-1">
         <div className="flex h-[68px] shrink-0 items-center">{props.toolbar}</div>

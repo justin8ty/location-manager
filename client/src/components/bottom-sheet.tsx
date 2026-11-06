@@ -3,7 +3,8 @@ import { type KeyboardEvent, type PointerEvent, type ReactNode, useRef, useState
 export type SheetSnap = "collapsed" | "half" | "full";
 
 const SNAPS: readonly SheetSnap[] = ["collapsed", "half", "full"];
-const COLLAPSED_PX = 120;
+// The handle (h-6) plus a page's 68px header: collapsed shows the title and nothing under it.
+const COLLAPSED_PX = 92;
 const HALF_SHARE = 0.46;
 const FULL_SHARE = 0.82;
 
@@ -52,6 +53,8 @@ interface BottomSheetProps {
   onSnapChange: (snap: SheetSnap) => void;
   /** Names the sheet for assistive technology. */
   label: string;
+  /** Stays put above the scrolling content. */
+  header: ReactNode;
   children: ReactNode;
 }
 
@@ -59,7 +62,7 @@ interface BottomSheetProps {
  * The phone layout's sheet below the map (DESIGN.md: Layout, Mobile). Drag the handle between three
  * heights, or tap it to cycle through them. The sheet sits in the page flow, so the map shrinks to fit.
  */
-export function BottomSheet({ snap, onSnapChange, label, children }: BottomSheetProps) {
+export function BottomSheet({ snap, onSnapChange, label, header, children }: BottomSheetProps) {
   const sheet = useRef<HTMLElement>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
 
@@ -114,10 +117,12 @@ export function BottomSheet({ snap, onSnapChange, label, children }: BottomSheet
         onPointerUp={handlePointerUp}
         onPointerCancel={() => setDrag(null)}
         onKeyDown={handleKeyDown}
-        className="flex h-6 shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+        className="flex h-[24px] shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
       >
         <span className="h-1 w-9 rounded-full bg-rule" />
       </div>
+      {/* Above the scroller in paint order, so the scroller's snapped edge can't show a sliver over it. */}
+      <div className="relative z-10 shrink-0 bg-chrome">{header}</div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
     </section>
   );

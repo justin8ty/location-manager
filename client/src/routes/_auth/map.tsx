@@ -86,16 +86,9 @@ function LoadError({ error, onRetry }: { error: Error; onRetry: () => void }) {
   );
 }
 
-interface ColumnHeaderProps {
-  count: number | undefined;
-  sticky: boolean;
-}
-
-function ColumnHeader({ count, sticky }: ColumnHeaderProps) {
+function ColumnHeader({ count }: { count: number | undefined }) {
   return (
-    <header
-      className={`flex h-[68px] shrink-0 items-center justify-between gap-3 bg-chrome px-5 ${sticky ? "sticky top-0 z-10" : ""}`}
-    >
+    <header className="flex h-[68px] items-center justify-between gap-3 px-5">
       <h1 className="text-title flex items-center gap-2 text-ink">
         Places
         {count !== undefined && (
@@ -226,7 +219,6 @@ function MapPage() {
 
   const column = (
     <MapColumn
-      header={<ColumnHeader count={places?.length} sticky={mobile} />}
       composer={
         <Composer
           key={editing?.id ?? "new"}
@@ -306,6 +298,7 @@ function MapPage() {
     <>
       <Workspace
         column={column}
+        columnHeader={<ColumnHeader count={places?.length} />}
         columnLabel="Places"
         toolbar={<MapToolbar map={map} locations={places ?? []} />}
         frame={frame}
@@ -324,7 +317,6 @@ function MapPage() {
 }
 
 interface MapColumnProps {
-  header: ReactNode;
   composer: ReactNode;
   searchInput: RefObject<HTMLInputElement | null>;
   query: string;
@@ -333,11 +325,10 @@ interface MapColumnProps {
   list: ReactNode;
 }
 
-/** Header, composer, search, filters and list. On wider screens only the list scrolls; in the sheet, all of it does. */
+/** Composer, search, filters and list. On wider screens only the list scrolls; in the sheet, all of it does. */
 function MapColumn(props: MapColumnProps) {
   return (
-    <div className="flex flex-col tablet:h-full tablet:min-h-0">
-      {props.header}
+    <div className="flex flex-col tablet:min-h-0 tablet:flex-1">
       <div className="flex flex-col px-5 tablet:min-h-0 tablet:flex-1">
         {props.composer}
         <div className="mt-2">
