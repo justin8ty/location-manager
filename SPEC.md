@@ -1,4 +1,4 @@
-# Location Manager Spec
+# JustNaik Places Manager Spec
 
 Full-stack app where authenticated users manage their own locations: add them manually or via ZIP upload, and view them on an interactive map. Source brief: `JustNaik Technical Assessments.md`.
 
@@ -9,7 +9,7 @@ Full-stack app where authenticated users manage their own locations: add them ma
 | Repo | pnpm workspaces: `client/`, `server/`, `packages/shared/` |
 | Frontend | Vite, React, TypeScript, TanStack Router, TanStack Query |
 | UI | Tailwind CSS, Kumo (`@cloudflare/kumo`) |
-| Map | Leaflet, react-leaflet, OpenStreetMap tiles |
+| Map | Leaflet, react-leaflet, leaflet.markercluster; OpenFreeMap vector tiles via `maplibre-gl-leaflet` (ADR-10) |
 | Backend | Node.js, Express, TypeScript, Drizzle ORM |
 | Database | PostgreSQL (Docker locally, Neon in production) |
 | Auth | JWT (`jose`) in httpOnly cookie, argon2id |
@@ -29,7 +29,7 @@ Full-stack app where authenticated users manage their own locations: add them ma
 - Protected routes redirect unauthenticated visitors to `/login?redirect=<path>`; after login, return to `redirect` (default `/map`).
 - Authenticated visitors to `/login` or `/register` are redirected to `/map`.
 - `/` redirects to `/map`.
-- Protected pages share a layout with a sidebar: Map, Upload, Logout. The sidebar collapses on mobile.
+- Protected pages share a layout with navigation (Map, Upload, Logout): a 68px icon rail on desktop, a bottom tab bar on mobile.
 - Any API `401` clears the auth state and redirects to `/login`.
 
 ## Features
@@ -53,19 +53,21 @@ Full-stack app where authenticated users manage their own locations: add them ma
 - Form fields: name (1–100 chars, trimmed), latitude (−90..90), longitude (−180..180), icon (optional).
 - Icon: one of `pin`, `home`, `work`, `food`, `cafe`, `shop`, `park`, `nature`, `animals`, `temple`, `mosque`, `landmark`. If omitted on create, the server uses `suggestLocationIcon(name)` (rules in `DESIGN.md`). Renaming keeps the icon.
 - On submit the marker appears without a page reload. The map flies to it and opens its popup.
-- Clicking an empty map spot fills the latitude/longitude fields and shows a faded preview marker.
-- Clicking a marker shows a popup with the name, an edit button, and a delete button. Delete asks for confirmation in a dialog.
+- Picking a spot fills the latitude/longitude fields and shows a preview marker. Desktop: click an empty map spot. Mobile: pan the map under a fixed centre crosshair and tap **Add here**; tapping the map doesn't pick.
+- Clicking a marker shows a popup with the name and Edit, Copy (copies `lat, lng`) and Delete buttons. Delete asks for confirmation in a dialog.
+- Nearby markers are clustered; clicking a cluster zooms to its markers.
+- The list of places can be searched (name or category) and filtered by one category chip at a time.
 - Edit puts the add-location form into edit mode, prefilled. Map-click-to-fill works in edit mode too. Save updates the marker in place; Cancel returns to add mode. Markers aren't draggable.
 - Build order: edit is built after all required features are done and tested.
 - Initial view: if the user has no locations, centre on Kuala Lumpur (`3.139, 101.6869`) at zoom 11. Otherwise fit bounds to all markers.
-- After an upload, the next map view fits bounds to all markers.
+- After an upload, the map fits bounds to the imported markers.
 
 ### File Upload
 
-- Accepts one `.zip` file, max 5 MB.
+- Accepts one `.zip` file, max 5 MB, chosen on `/upload` or dropped onto the map frame of `/map` or `/upload`.
 - After ignoring directory entries, `__MACOSX/` entries and `.DS_Store` files, the ZIP must contain exactly one file, and it must have a `.txt` extension. Any other file alongside it is an error. The file may sit in a subfolder.
 - Text file: UTF-8, max 1 MB uncompressed. The size is checked from entry metadata before decompressing (zip-bomb guard).
-- On success: success toast for 3 s, then the locations query is invalidated so the markers appear on the map. The toast offers a "View on map" link.
+- On success: the new markers are added to the cached locations and appear on the map. Success toast for 3 s; on `/upload` it offers a "View on map" link.
 - On any error: error toast for 3 s with the reason.
 - Upload is all-or-nothing. Any invalid row rejects the whole file and nothing is saved.
 - Uploaded locations get the icon suggested by their name.
@@ -177,7 +179,7 @@ client/
   src/
     routes/                   # TanStack Router file routes (_auth layout guards protected pages)
     features/auth|locations|upload/
-    components/               # shared UI (layout, sidebar)
+    components/               # shared UI (app shell, map frame, bottom sheet, toasts)
     lib/api.ts                # fetch wrapper, error parsing
 server/
   drizzle/                    # generated SQL migrations
@@ -276,3 +278,8 @@ To deploy: Cloudflare Pages (+ Pages Function) proxying `/api/*` to Google Cloud
 - **Decision:** Integration tests run against a `locations_test` database on the Docker Postgres, not an in-process substitute (PGlite).
 - **Why:** Tests exercise the production driver (`node-postgres`), transactions and error codes. No test-only driver seam. Docker is already required to run the app.
 - **Trade-off:** `pnpm test` needs the Postgres container running.
+
+### ADR-10: OpenFreeMap vector tiles through maplibre-gl-leaflet
+- **Decision:** The basemap is OpenFreeMap vector tiles drawn by `maplibre-gl` inside Leaflet (`@maplibre/maplibre-gl-leaflet`), with our own style (`map-style.ts`). Markers, popups and clusters stay in Leaflet.
+- **Why:** Raster tiles can only be recoloured with CSS filters; vector tiles let the map use the app's colours. Leaflet and react-leaflet stay, as the brief requires.
+- **Trade-off:** `maplibre-gl` adds about 800 KB, so it is lazy-loaded after first render (the map frame shows land colour until then). The map depends on a free tile service with no fallback basemap: if OpenFreeMap is down, pins still work but the background is blank.

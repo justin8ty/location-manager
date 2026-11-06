@@ -1,4 +1,4 @@
-# Location Manager
+# JustNaik Places Manager
 
 Manage your own locations on an interactive map: add them by hand or by uploading a ZIP file.
 
@@ -40,7 +40,7 @@ Without Docker, create `locations` and `locations_test` databases on your own Po
 1. Register, or log in.
 2. On **Map**, add locations with the form, or click the map to fill in coordinates. Click a marker to see, edit or delete it.
 3. On **Upload**, upload a ZIP containing one `.txt` file of locations. Try [`samples/locations.zip`](./samples/locations.zip); the format is in [SPEC.md](./SPEC.md#txt-format).
-4. Log out from the sidebar.
+4. Log out from the rail (the tab bar on mobile).
 
 ## Dev
 

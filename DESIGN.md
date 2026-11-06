@@ -1,6 +1,6 @@
 # JustNaik Places Manager Design
 
-The visual and interaction design for the client. `SPEC.md` covers behaviour and `DESIGN.md` covers look and feel. Where the two conflict, the [Spec changes](#spec-changes) section lists the updates `SPEC.md` needs.
+The visual and interaction design for the client. `SPEC.md` covers behaviour and `DESIGN.md` covers look and feel.
 
 ## Principles
 
@@ -82,8 +82,7 @@ Text must pass WCAG AA (4.5:1) on `--chrome` and `--field`, which means using `-
 - **Rail:**
   - `--ink` background and full height;
   - from the top: the mark, Map, Upload, a spacer, Log out, and the avatar (a 36px square with an initial, the email in its tooltip);
-  - the active item has a lighter background;
-  - this replaces the spec's sidebar.
+  - the active item has a lighter background.
 - **Column:** on `--chrome` with no border. Its contents depend on the page.
 - **Pane:** a 68px toolbar on top, then the map frame. The pane has 14px padding on the right and bottom and 4px on the left.
 - **Map frame:**
@@ -365,19 +364,3 @@ Initial view: fit to all pins, or KL at zoom 11 when there are none (as in the s
 - **Product name:** "JustNaik Places Manager", used in the `<title>`, the login and register column, and the README.
 - **Rail:** shows only the mark: a 26px rounded square outline in `--chrome`, split into quarters by thin `--ink-2` lines, with an `--accent` dot in the top-right quarter.
 - **Favicon:** the same mark.
-
-## Spec changes
-
-`SPEC.md` needs these updates when this design is built:
-
-- **Name:** JustNaik Places Manager.
-- **Navigation:**
-  - on desktop, the sidebar is a 68px icon rail;
-  - on mobile, it's a bottom tab bar, not a sidebar that collapses.
-- **Map tiles:** OpenFreeMap vector tiles through `maplibre-gl-leaflet`. Add an ADR for it, covering the bundle size and the dependency on a free tile service with no fallback.
-- **Mobile add flow:** use the centre crosshair with **Add here**; tapping the map doesn't place pins on mobile.
-- **New features:**
-  - category filter chips;
-  - pin clustering;
-  - dropping a ZIP onto the map frame;
-  - Copy coordinates in the popup.
