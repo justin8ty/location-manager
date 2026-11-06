@@ -2,27 +2,44 @@ import {
   type CreateLocationRequest,
   createLocationRequestSchema,
   type Location,
+  type LocationIcon,
   latitudeSchema,
   longitudeSchema,
+  suggestLocationIcon,
   type UpdateLocationRequest,
 } from "@location-manager/shared";
 import type { LatLngTuple } from "leaflet";
 import { z } from "zod";
 
-/** The add-location form's fields, as typed (or filled in by clicking the map). */
+/** The composer's fields, as typed (or filled in from the map). */
 export interface LocationDraft {
   name: string;
   latitude: string;
   longitude: string;
+  icon: LocationIcon;
+  /** The icon follows the name's suggestion until the user picks one. */
+  iconSuggested: boolean;
 }
 
-export type DraftErrors = Partial<Record<keyof LocationDraft, string>>;
+type DraftField = "name" | "latitude" | "longitude";
 
-export const EMPTY_DRAFT: LocationDraft = { name: "", latitude: "", longitude: "" };
+export type DraftErrors = Partial<Record<DraftField, string>>;
 
-/** A saved location as form fields. Coordinates keep their full precision, so saving unchanged fields changes nothing. */
+export const EMPTY_DRAFT: LocationDraft = { name: "", latitude: "", longitude: "", icon: "pin", iconSuggested: true };
+
+/** A saved location as fields. Coordinates keep their full precision, so saving unchanged fields changes nothing. */
 export function draftFromLocation(location: Location): LocationDraft {
-  return { name: location.name, latitude: String(location.latitude), longitude: String(location.longitude) };
+  return {
+    name: location.name,
+    latitude: String(location.latitude),
+    longitude: String(location.longitude),
+    icon: location.icon,
+    iconSuggested: false,
+  };
+}
+
+export function renameDraft(draft: LocationDraft, name: string): LocationDraft {
+  return { ...draft, name, icon: draft.iconSuggested ? suggestLocationIcon(name) : draft.icon };
 }
 
 /** The fields of `input` that differ from the saved location, or null when nothing changed. */
@@ -34,6 +51,8 @@ export function locationChanges(location: Location, input: CreateLocationRequest
   if (input.latitude !== location.latitude) changes.latitude = input.latitude;
 
   if (input.longitude !== location.longitude) changes.longitude = input.longitude;
+
+  if (input.icon !== location.icon) changes.icon = input.icon;
 
   return Object.keys(changes).length > 0 ? changes : null;
 }
@@ -50,6 +69,7 @@ export function parseDraft(draft: LocationDraft) {
     name: draft.name,
     latitude: parseNumber(draft.latitude),
     longitude: parseNumber(draft.longitude),
+    icon: draft.icon,
   });
 }
 

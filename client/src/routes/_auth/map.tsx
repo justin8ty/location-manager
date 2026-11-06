@@ -1,111 +1,172 @@
-import { Link, Text } from "@cloudflare/kumo";
-import type { Location } from "@location-manager/shared";
+import type { Location, LocationIcon } from "@location-manager/shared";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import type { LatLngTuple } from "leaflet";
-import { type KeyboardEvent, type ReactNode, useRef, useState } from "react";
-import { PageError, PagePending } from "../../components/route-states";
+import type { Map as LeafletMap } from "leaflet";
+import { type ReactNode, type RefObject, useEffect, useEffectEvent, useRef, useState } from "react";
+import type { SheetSnap } from "../../components/bottom-sheet";
+import { Button, buttonClassName } from "../../components/button";
+import { Workspace } from "../../components/workspace";
+import { Composer, type PickMethod } from "../../features/locations/composer";
 import { DeleteLocationDialog } from "../../features/locations/delete-location-dialog";
-import { formatCoordinate, formatLocationCount } from "../../features/locations/format";
+import { formatCoordinateInput } from "../../features/locations/format";
 import {
   draftFromLocation,
   draftPosition,
   EMPTY_DRAFT,
   type LocationDraft,
 } from "../../features/locations/location-draft";
-import { LocationForm } from "../../features/locations/location-form";
-import { type FocusRequest, LocationMap } from "../../features/locations/location-map";
+import { FloatingMapControls, MapToolbar } from "../../features/locations/map-controls";
+import { CategoryChips, filterPlaces, PlaceList, PlaceSearch, sortPlaces } from "../../features/locations/place-list";
+import { type MapFocus, PlacesMap, type PreviewPlace } from "../../features/locations/places-map";
 import { locationsQuery } from "../../features/locations/queries";
+import { useArrivals } from "../../features/locations/use-arrivals";
+import { useZipImport } from "../../features/upload/use-zip-import";
+import { useIsMobile } from "../../lib/use-media-query";
 
 export const Route = createFileRoute("/_auth/map")({
   component: MapPage,
 });
 
-// On wide screens the panel floats over the map's top-left corner: md:left-3 + md:w-80.
-const WIDE_SCREEN_QUERY = "(min-width: 48rem)";
-const PANEL_INSET_PX = 12 + 320;
-
-function MapPage() {
-  const locations = useQuery(locationsQuery);
-
-  // The map's first view fits the markers it opens with, so it waits for a current list: on the
-  // first load, after an upload has invalidated the list, and while retrying a failed load.
-  if (locations.isFetching && locations.isStale) return <PagePending />;
-
-  if (locations.isError) {
-    return (
-      <PageError
-        title="We couldn't load your locations"
-        error={locations.error}
-        onRetry={() => void locations.refetch()}
-      />
-    );
-  }
-
-  // Waiting to go back online.
-  if (!locations.data) return <PagePending />;
-
-  return <MapWorkspace locations={locations.data} />;
+function isTyping(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
+  );
 }
 
-interface PanelHeaderProps {
-  editing: boolean;
-  locationCount: number;
+function samePosition(location: Location, latitude: number, longitude: number): boolean {
+  return location.latitude === latitude && location.longitude === longitude;
 }
 
-function PanelHeader({ editing, locationCount }: PanelHeaderProps) {
-  let hint: ReactNode = "Click the map to fill in the coordinates.";
+/** The crosshair phones aim with: pan the map under it, then tap Add here. */
+function Crosshair() {
+  return (
+    <svg
+      aria-hidden
+      width="36"
+      height="36"
+      viewBox="0 0 36 36"
+      className="pointer-events-none absolute top-1/2 left-1/2 z-[1001] -translate-x-1/2 -translate-y-1/2 text-ink"
+    >
+      <path d="M18 3v11M18 22v11M3 18h11M22 18h11" stroke="#fff" strokeWidth="4" strokeLinecap="round" />
+      <path d="M18 3v11M18 22v11M3 18h11M22 18h11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="18" cy="18" r="2" fill="var(--accent)" stroke="#fff" strokeWidth="1" />
+    </svg>
+  );
+}
 
-  if (editing) hint = "Click the map to move it.";
-  else if (locationCount === 0) {
-    hint = (
-      <>
-        No locations yet. Click the map to pick a spot, or <Link href="/upload">upload a file</Link>.
-      </>
-    );
-  }
+function EmptyMapCard({ pickMethod }: { pickMethod: PickMethod }) {
+  const prompt = pickMethod === "click" ? "Click anywhere to drop your first place, or " : "Pan to a spot and tap Add here, or ";
 
   return (
-    <header className="flex flex-col gap-1">
-      <div className="flex items-baseline justify-between gap-3">
-        <Text variant="heading3" as="h1" id="location-panel-heading">
-          {editing ? "Edit location" : "Add location"}
-        </Text>
-        {!editing && locationCount > 0 && (
-          <span className="text-sm text-kumo-subtle tabular-nums">{formatLocationCount(locationCount)}</span>
-        )}
+    <div className="pointer-events-none absolute inset-0 z-[1001] flex items-center justify-center p-6">
+      <div className="pointer-events-auto max-w-[300px] rounded-[10px] border border-rule bg-field px-5 py-4 text-center shadow-float">
+        <p className="text-heading text-ink">No places yet</p>
+        <p className="mt-1 text-ink-2">
+          {prompt}
+          <Link to="/upload" className="font-medium text-accent-ink underline underline-offset-2">
+            import a file
+          </Link>
+          .
+        </p>
       </div>
-      <Text variant="secondary">{hint}</Text>
+    </div>
+  );
+}
+
+function LoadError({ error, onRetry }: { error: Error; onRetry: () => void }) {
+  return (
+    <div role="alert" className="flex flex-col items-start gap-3 rounded-[10px] border border-accent/40 bg-field p-4">
+      <div>
+        <p className="font-medium text-accent">Couldn't load your places</p>
+        <p className="text-meta text-ink-2">{error.message}</p>
+      </div>
+      <Button onClick={onRetry}>Retry</Button>
+    </div>
+  );
+}
+
+interface ColumnHeaderProps {
+  count: number | undefined;
+  sticky: boolean;
+}
+
+function ColumnHeader({ count, sticky }: ColumnHeaderProps) {
+  return (
+    <header
+      className={`flex h-[68px] shrink-0 items-center justify-between gap-3 bg-chrome px-5 ${sticky ? "sticky top-0 z-10" : ""}`}
+    >
+      <h1 className="text-title flex items-center gap-2 text-ink">
+        Places
+        {count !== undefined && (
+          <span className="coords rounded-full bg-rule-2 px-2 text-meta font-medium text-ink-2">{count}</span>
+        )}
+      </h1>
+      <Link to="/upload" className={buttonClassName({ variant: "secondary" })}>
+        Import
+      </Link>
     </header>
   );
 }
 
-function samePosition(location: Location, position: LatLngTuple): boolean {
-  return location.latitude === position[0] && location.longitude === position[1];
-}
-
-function MapWorkspace({ locations }: { locations: Location[] }) {
+function MapPage() {
+  const locations = useQuery(locationsQuery);
+  const mobile = useIsMobile();
+  const pickMethod: PickMethod = mobile ? "add-here" : "click";
+  const arrivals = useArrivals(locations.data);
+  const [map, setMap] = useState<LeafletMap | null>(null);
   const [draft, setDraft] = useState<LocationDraft>(EMPTY_DRAFT);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [focus, setFocus] = useState<FocusRequest | null>(null);
+  const [focus, setFocus] = useState<MapFocus | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Location | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<LocationIcon | null>(null);
+  const [sheetSnap, setSheetSnap] = useState<SheetSnap>("half");
   const nameInput = useRef<HTMLInputElement>(null);
-  const [leftInset] = useState(() => (window.matchMedia(WIDE_SCREEN_QUERY).matches ? PANEL_INSET_PX : 0));
-  const editing = locations.find((location) => location.id === editingId) ?? null;
-  const draftAt = draftPosition(draft);
-  // While editing, the pin only appears once the location is being moved; its marker already marks where it is.
-  const preview = draftAt && editing && samePosition(editing, draftAt) ? null : draftAt;
+  const searchInput = useRef<HTMLInputElement>(null);
 
-  function pick(latitude: number, longitude: number) {
-    setDraft((current) => ({ ...current, latitude: formatCoordinate(latitude), longitude: formatCoordinate(longitude) }));
+  const { upload, importFiles } = useZipImport({
+    offerViewOnMap: false,
+    onImported: (imported) => setFocus({ kind: "fit", locations: imported }),
+  });
 
-    // With a mouse, go straight to naming the spot; on touch, focusing would cover the map with the keyboard.
-    if (draft.name === "" && window.matchMedia("(pointer: fine)").matches) nameInput.current?.focus();
+  const places = locations.data;
+  const editing = places?.find((location) => location.id === editingId) ?? null;
+  // A category whose last place was deleted no longer filters.
+  const activeCategory = places?.some((location) => location.icon === category) ? category : null;
+  const listed = places && filterPlaces(sortPlaces(places), query, activeCategory);
+  const position = draftPosition(draft);
+  let preview: PreviewPlace | null = position && { position, icon: draft.icon };
+
+  // While editing, the preview only appears once the place is moved; its own pin already marks where it is.
+  if (position && editing && samePosition(editing, position[0], position[1])) preview = null;
+
+  function fillCoordinates(latitude: number, longitude: number) {
+    setDraft((current) => ({
+      ...current,
+      latitude: formatCoordinateInput(latitude),
+      longitude: formatCoordinateInput(longitude),
+    }));
+
+    // Go straight to naming the spot, unless it already has a name (e.g. it's being moved).
+    if (draft.name === "") nameInput.current?.focus();
+  }
+
+  function addHere() {
+    if (!map) return;
+
+    setSheetSnap("full");
+    const { lat, lng } = map.getCenter().wrap();
+    fillCoordinates(lat, lng);
   }
 
   function startEdit(location: Location) {
+    map?.closePopup();
     setEditingId(location.id);
     setDraft(draftFromLocation(location));
+    setSheetSnap("full");
   }
 
   function stopEdit() {
@@ -113,55 +174,180 @@ function MapWorkspace({ locations }: { locations: Location[] }) {
     setDraft(EMPTY_DRAFT);
   }
 
+  function showPlace(location: Location) {
+    setSelectedId(location.id);
+    setFocus({ kind: "place", id: location.id });
+    setSheetSnap("half");
+  }
+
   function handleSaved(location: Location) {
     stopEdit();
-    setFocus({ locationId: location.id });
+    showPlace(location);
   }
 
   function handleDeleted(location: Location) {
     if (location.id === editingId) stopEdit();
   }
 
-  function handlePanelKeyDown(event: KeyboardEvent<HTMLElement>) {
-    if (event.key === "Escape" && editing) stopEdit();
+  function handlePlaceOpen(id: string) {
+    setSelectedId(id);
+    setSheetSnap((snap) => (snap === "full" ? "half" : snap));
   }
 
-  return (
-    <div className="flex h-full flex-col md:relative">
-      <div className="relative isolate min-h-0 flex-1">
-        <LocationMap
-          locations={locations}
-          preview={preview}
-          focus={focus}
-          leftInset={leftInset}
-          onPick={pick}
-          onEdit={startEdit}
-          onDelete={setPendingDelete}
-        />
-      </div>
+  function handlePlaceClose(id: string) {
+    setSelectedId((current) => (current === id ? null : current));
+  }
 
-      <section
-        aria-labelledby="location-panel-heading"
-        onKeyDown={handlePanelKeyDown}
-        className="z-10 flex shrink-0 flex-col gap-4 border-t border-kumo-line bg-kumo-base p-4 md:absolute md:top-3 md:left-3 md:w-80 md:rounded-xl md:border-0 md:p-5 md:shadow-lg md:ring md:ring-kumo-line"
-      >
-        <PanelHeader editing={editing !== null} locationCount={locations.length} />
-        <LocationForm
+  // Esc steps back one level at a time; `/` jumps to search (DESIGN.md: Keyboard and accessibility).
+  const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (event.key === "/" && !isTyping(event.target)) {
+      event.preventDefault();
+      searchInput.current?.focus();
+
+      return;
+    }
+
+    // Menus and dialogs handle their own Esc and mark it handled.
+    if (event.key !== "Escape" || event.defaultPrevented || pendingDelete) return;
+
+    if (editing) stopEdit();
+    else if (preview) setDraft((current) => ({ ...current, latitude: "", longitude: "" }));
+    else if (selectedId) {
+      map?.closePopup();
+      setSelectedId(null);
+    }
+  });
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const column = (
+    <MapColumn
+      header={<ColumnHeader count={places?.length} sticky={mobile} />}
+      composer={
+        <Composer
           key={editing?.id ?? "new"}
           draft={draft}
           onDraftChange={setDraft}
           editing={editing}
           onSaved={handleSaved}
           onCancelEdit={stopEdit}
+          pickMethod={pickMethod}
           nameInputRef={nameInput}
         />
-      </section>
+      }
+      searchInput={searchInput}
+      query={query}
+      onQueryChange={setQuery}
+      filters={
+        places &&
+        places.length > 0 && <CategoryChips locations={places} category={activeCategory} onCategoryChange={setCategory} />
+      }
+      list={
+        locations.isError && !places ? (
+          <LoadError error={locations.error} onRetry={() => void locations.refetch()} />
+        ) : (
+          <PlaceList
+            locations={listed}
+            hasPlaces={(places?.length ?? 0) > 0}
+            query={query}
+            arrivals={arrivals}
+            selectedId={selectedId}
+            onSelect={showPlace}
+            onHover={setHoveredId}
+          />
+        )
+      }
+    />
+  );
 
+  // The first view fits the places, so the map waits for them (or for the load to fail).
+  const mapReady = places !== undefined || locations.isError;
+
+  const frame = mapReady && (
+    <>
+      <PlacesMap
+        locations={places ?? []}
+        arrivals={arrivals}
+        selectedId={selectedId}
+        hoveredId={hoveredId}
+        preview={preview}
+        focus={focus}
+        onPick={mobile ? undefined : fillCoordinates}
+        actions={{ onEdit: startEdit, onDelete: setPendingDelete }}
+        onPlaceOpen={handlePlaceOpen}
+        onPlaceClose={handlePlaceClose}
+        mapRef={setMap}
+      />
+      {places?.length === 0 && !preview && <EmptyMapCard pickMethod={pickMethod} />}
+      {mobile && (
+        <>
+          <FloatingMapControls map={map} locations={places ?? []} />
+          {/* Aiming needs the map: not with the sheet at full height (the map is a sliver) or a place open. */}
+          {sheetSnap !== "full" && selectedId === null && (
+            <>
+              <Crosshair />
+              <div className="pointer-events-none absolute inset-x-0 bottom-5 z-[1001] flex justify-center">
+                <Button variant="primary" className="pointer-events-auto shadow-float" disabled={!map} onClick={addHere}>
+                  Add here
+                </Button>
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </>
+  );
+
+  return (
+    <>
+      <Workspace
+        column={column}
+        columnLabel="Places"
+        toolbar={<MapToolbar map={map} locations={places ?? []} />}
+        frame={frame}
+        onFilesDropped={importFiles}
+        dropDisabled={upload.isPending}
+        sheetSnap={sheetSnap}
+        onSheetSnapChange={setSheetSnap}
+      />
       <DeleteLocationDialog
         location={pendingDelete}
         onClose={() => setPendingDelete(null)}
         onDeleted={handleDeleted}
       />
+    </>
+  );
+}
+
+interface MapColumnProps {
+  header: ReactNode;
+  composer: ReactNode;
+  searchInput: RefObject<HTMLInputElement | null>;
+  query: string;
+  onQueryChange: (query: string) => void;
+  filters: ReactNode;
+  list: ReactNode;
+}
+
+/** Header, composer, search, filters and list. On wider screens only the list scrolls; in the sheet, all of it does. */
+function MapColumn(props: MapColumnProps) {
+  return (
+    <div className="flex flex-col tablet:h-full tablet:min-h-0">
+      {props.header}
+      <div className="flex flex-col px-5 tablet:min-h-0 tablet:flex-1">
+        {props.composer}
+        <div className="mt-2">
+          <PlaceSearch query={props.query} onQueryChange={props.onQueryChange} inputRef={props.searchInput} />
+        </div>
+        {props.filters}
+        <div className="-mx-2.5 mt-1 pb-4 tablet:min-h-0 tablet:flex-1 tablet:overflow-y-auto">
+          <div className="px-2.5">{props.list}</div>
+        </div>
+      </div>
     </div>
   );
 }

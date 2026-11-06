@@ -3,17 +3,6 @@ const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 const LAST_RELATIVE_DAY = 6;
 
-const coordinateFormat = new Intl.NumberFormat("en-US", { maximumFractionDigits: 6, useGrouping: false });
-
-/** A coordinate rounded to 6 decimals (about 10 cm), without trailing zeros. */
-export function formatCoordinate(value: number): string {
-  return coordinateFormat.format(value);
-}
-
-export function formatLocationCount(count: number): string {
-  return count === 1 ? "1 location" : `${count} locations`;
-}
-
 /** A coordinate as an input holds it: a plain decimal with 6 places (about 10 cm). */
 export function formatCoordinateInput(value: number): string {
   return value.toFixed(6);
