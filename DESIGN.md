@@ -132,7 +132,7 @@ The same as desktop, but the column is 340px wide and the cursor readout is hidd
 
 Column, from top to bottom:
 
-1. **Header** (68px): "Places" with a count badge, and an **Import** button that goes to `/upload`.
+1. **Header** (68px): the title "JustNaik Places" and an **Import** button that goes to `/upload`.
 2. **Composer:** the add/edit form card, a fixed 282px tall. See [Composer](#composer).
 3. **Search:** 52px tall, with a filter input and a `/` key hint. It matches names and icon category names.
 4. **Category filters:** a row of chips that scrolls sideways: `All 7`, `Shopping 2`, `Landmark 2`, … Only categories in use appear, each with its count. One can be selected at a time, and it combines with the search.

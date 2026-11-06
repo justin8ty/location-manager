@@ -86,15 +86,10 @@ function LoadError({ error, onRetry }: { error: Error; onRetry: () => void }) {
   );
 }
 
-function ColumnHeader({ count }: { count: number | undefined }) {
+function ColumnHeader() {
   return (
     <header className="flex h-[68px] items-center justify-between gap-3 px-5">
-      <h1 className="text-title flex items-center gap-2 text-ink">
-        Places
-        {count !== undefined && (
-          <span className="coords rounded-full bg-rule-2 px-2 text-meta font-medium text-ink-2">{count}</span>
-        )}
-      </h1>
+      <h1 className="text-title text-ink">JustNaik Places</h1>
       <Link to="/upload" className={buttonClassName({ variant: "secondary" })}>
         Import
       </Link>
@@ -295,7 +290,7 @@ function MapPage() {
     <>
       <Workspace
         column={column}
-        columnHeader={<ColumnHeader count={places?.length} />}
+        columnHeader={<ColumnHeader />}
         columnLabel="Places"
         toolbar={<MapToolbar map={map} locations={places ?? []} />}
         frame={frame}
