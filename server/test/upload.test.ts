@@ -49,7 +49,7 @@ describe("POST /api/locations/upload", () => {
     expect(res.status).toBe(201);
 
     const body = uploadResponseSchema.parse(res.body);
-    expect(body.count).toBe(7);
+    expect(body.count).toBe(10);
     expect(body.locations[0]).toMatchObject({
       name: "Suria KLCC",
       latitude: 3.157324409,
