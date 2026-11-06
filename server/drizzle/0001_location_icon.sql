@@ -1,0 +1,1 @@
+ALTER TABLE "locations" ADD COLUMN "icon" varchar(20) DEFAULT 'pin' NOT NULL;

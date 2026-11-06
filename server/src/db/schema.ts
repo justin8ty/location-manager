@@ -1,3 +1,4 @@
+import type { LocationIcon } from "@location-manager/shared";
 import { doublePrecision, index, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -17,6 +18,7 @@ export const locations = pgTable(
     name: varchar("name", { length: 100 }).notNull(),
     latitude: doublePrecision("latitude").notNull(),
     longitude: doublePrecision("longitude").notNull(),
+    icon: varchar("icon", { length: 20 }).$type<LocationIcon>().notNull().default("pin"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("locations_user_id_idx").on(t.userId)],

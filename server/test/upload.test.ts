@@ -50,7 +50,12 @@ describe("POST /api/locations/upload", () => {
 
     const body = uploadResponseSchema.parse(res.body);
     expect(body.count).toBe(7);
-    expect(body.locations[0]).toMatchObject({ name: "Suria KLCC", latitude: 3.157324409, longitude: 101.7121981 });
+    expect(body.locations[0]).toMatchObject({
+      name: "Suria KLCC",
+      latitude: 3.157324409,
+      longitude: 101.7121981,
+      icon: "shop",
+    });
     expect(idsOf(await listLocations(alice))).toEqual(idsOf(body.locations));
     expect(await listLocations(bob)).toEqual([]);
   });

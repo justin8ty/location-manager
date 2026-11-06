@@ -1,4 +1,9 @@
-import type { CreateLocationRequest, Location, UpdateLocationRequest } from "@location-manager/shared";
+import {
+  type CreateLocationRequest,
+  type Location,
+  suggestLocationIcon,
+  type UpdateLocationRequest,
+} from "@location-manager/shared";
 import { and, asc, eq } from "drizzle-orm";
 import type { Db } from "../db";
 import { locations } from "../db/schema";
@@ -9,16 +14,21 @@ const locationColumns = {
   name: locations.name,
   latitude: locations.latitude,
   longitude: locations.longitude,
+  icon: locations.icon,
   createdAt: locations.createdAt,
 };
 
-// Each row binds 4 parameters; PostgreSQL allows 65535 per statement.
+// Each row binds 5 parameters; PostgreSQL allows 65535 per statement.
 const INSERT_BATCH_SIZE = 1000;
 
 type StoredLocation = Omit<Location, "createdAt"> & { createdAt: Date };
 
 function toLocation(stored: StoredLocation): Location {
   return { ...stored, createdAt: stored.createdAt.toISOString() };
+}
+
+function newRow(userId: string, input: CreateLocationRequest) {
+  return { ...input, icon: input.icon ?? suggestLocationIcon(input.name), userId };
 }
 
 /** The user's locations, oldest first. */
@@ -35,7 +45,7 @@ export async function listLocations(db: Db, userId: string): Promise<Location[]>
 export async function createLocation(db: Db, userId: string, input: CreateLocationRequest): Promise<Location> {
   const [row] = await db
     .insert(locations)
-    .values({ ...input, userId })
+    .values(newRow(userId, input))
     .returning(locationColumns);
 
   if (!row) throw new Error("Location insert returned no row");
@@ -53,7 +63,7 @@ export async function createLocations(
     const created: Location[] = [];
 
     for (let start = 0; start < inputs.length; start += INSERT_BATCH_SIZE) {
-      const batch = inputs.slice(start, start + INSERT_BATCH_SIZE).map((input) => ({ ...input, userId }));
+      const batch = inputs.slice(start, start + INSERT_BATCH_SIZE).map((input) => newRow(userId, input));
       const rows = await tx.insert(locations).values(batch).returning(locationColumns);
       created.push(...rows.map(toLocation));
     }

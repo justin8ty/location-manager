@@ -330,7 +330,7 @@ Initial view: fit to all pins, or KL at zoom 11 when there are none (as in the s
   - a keyword must match at the start of a word, so `aquari` matches "Aquaria KLCC";
   - `wat` and `eat` must match a whole word, so "Water Park" and "Great Eastern" don't match them;
   - no match gives `pin`.
-- **Shared code:** the rules live in `packages/shared` as `suggestIcon(name)`, used by both the composer and the upload handler.
+- **Shared code:** `packages/shared/src/location-icon.ts` exports `locationIconSchema` and `suggestLocationIcon(name)`. The backend is done (column, API, upload; see `SPEC.md`). The composer uses the same function for its `AUTO` suggestion and always sends the chosen `icon`.
 
 ## Motion
 
@@ -375,11 +375,6 @@ Initial view: fit to all pins, or KL at zoom 11 when there are none (as in the s
   - on desktop, the sidebar is a 68px icon rail;
   - on mobile, it's a bottom tab bar, not a sidebar that collapses.
 - **Map tiles:** OpenFreeMap vector tiles through `maplibre-gl-leaflet`. Add an ADR for it, covering the bundle size and the dependency on a free tile service with no fallback.
-- **Place icons:**
-  - New column: `locations.icon` as `varchar(20)`, not null, default `'pin'`.
-  - Shared zod schema: an enum of the 12 keys.
-  - API: `POST` and `PATCH` accept an optional `icon`, and `location` responses include it.
-  - Upload: the server assigns `suggestIcon(name)` to each row. The TXT format doesn't change.
 - **Mobile add flow:** use the centre crosshair with **Add here**; tapping the map doesn't place pins on mobile.
 - **New features:**
   - category filter chips;

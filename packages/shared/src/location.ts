@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { locationIconSchema } from "./location-icon";
 
 export const locationNameSchema = z
   .string()
@@ -16,10 +17,12 @@ export const longitudeSchema = z
   .min(-180, "Longitude must be between -180 and 180")
   .max(180, "Longitude must be between -180 and 180");
 
+/** Without an icon, the server suggests one from the name. */
 export const createLocationRequestSchema = z.object({
   name: locationNameSchema,
   latitude: latitudeSchema,
   longitude: longitudeSchema,
+  icon: locationIconSchema.optional(),
 });
 
 export type CreateLocationRequest = z.infer<typeof createLocationRequestSchema>;
@@ -27,8 +30,12 @@ export type CreateLocationRequest = z.infer<typeof createLocationRequestSchema>;
 export const updateLocationRequestSchema = createLocationRequestSchema
   .partial()
   .refine(
-    (update) => update.name !== undefined || update.latitude !== undefined || update.longitude !== undefined,
-    "Provide at least one of name, latitude or longitude",
+    (update) =>
+      update.name !== undefined ||
+      update.latitude !== undefined ||
+      update.longitude !== undefined ||
+      update.icon !== undefined,
+    "Provide at least one of name, latitude, longitude or icon",
   );
 
 export type UpdateLocationRequest = z.infer<typeof updateLocationRequestSchema>;
@@ -38,6 +45,7 @@ export const locationSchema = z.object({
   name: z.string(),
   latitude: z.number(),
   longitude: z.number(),
+  icon: locationIconSchema,
   createdAt: z.iso.datetime(),
 });
 

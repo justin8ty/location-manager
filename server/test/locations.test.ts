@@ -50,13 +50,21 @@ describe("locations API", () => {
     }
   });
 
-  it("creates a location with a trimmed name and lists it", async () => {
+  it("creates a location with a trimmed name and an icon suggested from it, and lists it", async () => {
     const alice = await signedInAgent("alice@example.com");
 
     const created = await addLocation(alice, { ...klcc, name: "  Suria KLCC  " });
 
-    expect(created).toEqual({ id: expect.any(String), ...klcc, createdAt: expect.any(String) });
+    expect(created).toEqual({ id: expect.any(String), ...klcc, icon: "shop", createdAt: expect.any(String) });
     expect(await listLocations(alice)).toEqual([created]);
+  });
+
+  it("keeps the chosen icon over the suggested one", async () => {
+    const alice = await signedInAgent("alice@example.com");
+
+    const created = await addLocation(alice, { ...klcc, icon: "work" });
+
+    expect(created.icon).toBe("work");
   });
 
   it("rejects an invalid location", async () => {
@@ -79,6 +87,16 @@ describe("locations API", () => {
     const updated = { ...original, name: "KLCC Park" };
     expect(locationResponseSchema.parse(res.body).location).toEqual(updated);
     expect(await listLocations(alice)).toEqual([updated]);
+  });
+
+  it("updates the icon alone", async () => {
+    const alice = await signedInAgent("alice@example.com");
+    const original = await addLocation(alice, klcc);
+
+    const res = await alice.patch(`/api/locations/${original.id}`).send({ icon: "home" });
+
+    expect(res.status).toBe(200);
+    expect(await listLocations(alice)).toEqual([{ ...original, icon: "home" }]);
   });
 
   it("rejects an update with no fields", async () => {

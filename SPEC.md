@@ -50,7 +50,8 @@ Full-stack app where authenticated users manage their own locations: add them ma
 
 ### Map
 
-- Form fields: name (1–100 chars, trimmed), latitude (−90..90), longitude (−180..180).
+- Form fields: name (1–100 chars, trimmed), latitude (−90..90), longitude (−180..180), icon (optional).
+- Icon: one of `pin`, `home`, `work`, `food`, `cafe`, `shop`, `park`, `nature`, `animals`, `temple`, `mosque`, `landmark`. When a location is created without one, the server sets `suggestLocationIcon(name)` (shared package; rules in `DESIGN.md` → Icons), which falls back to `pin`. Renaming doesn't change the icon.
 - On submit the marker appears without a page reload. The map flies to it and opens its popup.
 - Clicking an empty map spot fills the latitude/longitude fields and shows a faded preview marker.
 - Clicking a marker shows a popup with the name, an edit button, and a delete button. Delete asks for confirmation in a dialog.
@@ -67,6 +68,7 @@ Full-stack app where authenticated users manage their own locations: add them ma
 - On success: success toast for 3 s, then the locations query is invalidated so the markers appear on the map. The toast offers a "View on map" link.
 - On any error: error toast for 3 s with the reason.
 - Upload is all-or-nothing. Any invalid row rejects the whole file and nothing is saved.
+- Each uploaded location gets the icon suggested by its name. The TXT format has no icon field.
 
 #### TXT Format
 
@@ -110,13 +112,13 @@ Base path `/api`. JSON unless noted. Every route except register/login requires 
 | POST | `/auth/logout` | — | `204`, cookie cleared |
 | GET | `/auth/me` | — | `200 { user }` |
 | GET | `/locations` | — | `200 { locations }` |
-| POST | `/locations` | `{ name, latitude, longitude }` | `201 { location }` |
-| PATCH | `/locations/:id` | `{ name?, latitude?, longitude? }` (at least one field) | `200 { location }` |
+| POST | `/locations` | `{ name, latitude, longitude, icon? }` | `201 { location }` |
+| PATCH | `/locations/:id` | `{ name?, latitude?, longitude?, icon? }` (at least one field) | `200 { location }` |
 | DELETE | `/locations/:id` | — | `204` |
 | POST | `/locations/upload` | multipart, field `file` | `201 { count, locations }` |
 | GET | `/health` | — | `200 { ok: true }` |
 
-`user` = `{ id, email }`. `location` = `{ id, name, latitude, longitude, createdAt }`.
+`user` = `{ id, email }`. `location` = `{ id, name, latitude, longitude, icon, createdAt }`.
 
 Error shape (all errors):
 
@@ -159,13 +161,14 @@ export const locations = pgTable(
     name: varchar("name", { length: 100 }).notNull(),
     latitude: doublePrecision("latitude").notNull(),
     longitude: doublePrecision("longitude").notNull(),
+    icon: varchar("icon", { length: 20 }).$type<LocationIcon>().notNull().default("pin"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("locations_user_id_idx").on(t.userId)],
 );
 ```
 
-Duplicate locations are allowed.
+Duplicate locations are allowed. `icon` is validated by the shared zod enum, not a database constraint, so adding an icon needs no migration. Rows that existed before the column was added have `pin`.
 
 ## Project Structure
 
@@ -205,7 +208,7 @@ In local development, Vite proxies `/api` to `http://localhost:3000`.
 
 ## Testing
 
-- Unit: TXT parser (every case in the parsing rules table) and ZIP validation (zero, two, or non-txt files; `__MACOSX` ignored; oversize).
+- Unit: TXT parser (every case in the parsing rules table), ZIP validation (zero, two, or non-txt files; `__MACOSX` ignored; oversize), and icon suggestion (rule order, word matching).
 - Integration (Supertest + test DB): auth middleware (no cookie, bad token, sliding re-issue) and per-user scoping (user B can't list, edit, or delete user A's locations).
 - Test DB: a real PostgreSQL database `locations_test` on the Docker Postgres, created by `docker/postgres-init.sql`. Vitest `globalSetup` runs the Drizzle migrations once; tables are truncated between tests; test files run sequentially (`fileParallelism: false`).
 - Running: `docker compose up -d db`, then `pnpm test`.
