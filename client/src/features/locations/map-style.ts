@@ -2,10 +2,13 @@ import type { DataDrivenPropertyValueSpecification, FilterSpecification, StyleSp
 
 /** The basemap (DESIGN.md: Map style): OpenFreeMap vector tiles drawn in the app's own colours. */
 
+/** One word on the map; the sources it stands for open above it on click. */
 export const MAP_ATTRIBUTION =
+  '<details class="map-credits"><summary>Credits</summary><div class="map-credits-list">' +
   '<a href="https://openfreemap.org" target="_blank" rel="noreferrer">OpenFreeMap</a> ' +
   '<a href="https://www.openmaptiles.org/" target="_blank" rel="noreferrer">© OpenMapTiles</a> ' +
-  '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a>';
+  '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a>' +
+  "</div></details>";
 
 const SOURCE = "openmaptiles";
 const LABEL_TEXT: DataDrivenPropertyValueSpecification<string> = ["coalesce", ["get", "name:latin"], ["get", "name"]];

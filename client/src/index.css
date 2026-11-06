@@ -224,17 +224,47 @@
   color: var(--ink-2);
 }
 
+.map-credits {
+  position: relative;
+}
+
+.map-credits summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.map-credits summary::-webkit-details-marker {
+  display: none;
+}
+
+.map-credits-list {
+  position: absolute;
+  right: -8px;
+  bottom: 100%;
+  margin-bottom: 4px;
+  padding: 6px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--field);
+  box-shadow: var(--shadow-float);
+  white-space: nowrap;
+}
+
 .leaflet-control-scale.leaflet-control {
   margin: 0 0 10px 12px;
 }
 
+/* Just the number, floating over the map on a halo. */
 .leaflet-control-scale-line {
-  border: 1.5px solid var(--ink-2);
-  border-top: none;
-  background: rgb(255 253 249 / 0.7);
-  color: var(--ink-2);
-  font: 11px/14px var(--font-mono);
-  padding: 0 6px;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: 500 14px/20px var(--font-mono);
+  padding: 0 2px;
+  text-shadow:
+    0 0 3px var(--chrome),
+    0 0 3px var(--chrome),
+    0 0 6px var(--chrome);
 }
 
 /* Pins (DESIGN.md: Pins). Leaflet positions the root with a transform, so states scale the body. */
