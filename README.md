@@ -4,16 +4,20 @@ Manage your own locations on an interactive map: add them by hand or by uploadin
 
 Stack: React (Vite, TanStack Router + Query, Tailwind, react-leaflet), Express, PostgreSQL (Drizzle), JWT in an httpOnly cookie.
 
+Specification and design decisions (ADRs): [SPEC.md](./SPEC.md).
+
 ## Setup
 
 Requires Node.js 24+, pnpm 12 and Docker.
 
 ```bash
 pnpm install
-cp .env.example .env     # set JWT_SECRET to a random string of 32+ characters
+cp .env.example .env
 ```
 
-Then start the database and API in Docker, apply the migrations, and run the client:
+Before proceed, set JWT_SECRET to a random string in `.env`. Generate one with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
+
+Then start the database and API in Docker and run:
 
 ```bash
 docker compose up -d --build
@@ -30,12 +34,12 @@ The API container runs in production mode, so the session cookie is `Secure`. Ch
 1. Register, or log in.
 2. On **Map**, browse your places: search them, filter by category, and click a marker to see, edit or delete it.
 3. Add a place with the form, which fills in coordinates when you click the map. On a phone, use the **Add place** tab: pan the map under the crosshair and tap **Add here**.
-4. On **Import**, upload a ZIP containing one `.txt` file of locations. Try [`samples/locations.zip`](./samples/locations.zip); the format is in [SPEC.md](./SPEC.md#txt-format).
+4. On **Import**, upload a ZIP containing one `.txt` file of locations. You can try [`samples/locations.zip`](./samples/locations.zip); the format is in [SPEC.md](./SPEC.md#txt-format).
 5. Log out from the rail (the tab bar on mobile).
 
 ## Mobile
 
-This app is mobile optimized. To try it on a phone over [Tailscale](https://tailscale.com) (HTTPS is needed, because the session cookie is `Secure`):
+This is optional as it requires extra configuration. The app is mobile optimized, so you can try it on a phone over [Tailscale](https://tailscale.com) (HTTPS is needed, because the session cookie is `Secure`):
 
 1. Enable HTTPS certificates for your tailnet in the Tailscale admin console (DNS).
 2. Add your computer's name, such as `my-pc.tailnet-name.ts.net`, to `server.allowedHosts` in `client/vite.config.ts`.
@@ -53,5 +57,3 @@ pnpm typecheck
 ```
 
 Changing server code? Run `docker compose up -d db` and `pnpm dev` for hot reload, instead of rebuilding the API container.
-
-Specification and design decisions (ADRs): [SPEC.md](./SPEC.md).
