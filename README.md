@@ -2,7 +2,7 @@
 
 Manage your own locations on an interactive map: add them by hand or by uploading a ZIP file.
 
-Stack: React (Vite, TanStack Router + Query, Tailwind, react-leaflet), Express, PostgreSQL (Drizzle), JWT in an httpOnly cookie.
+Stack: React (Vite, TanStack Router + Query, Tailwind, react-leaflet), Express, PostgreSQL (Drizzle), JWT in an httpOnly cookie. Dockerised backend is implemented.
 
 Specification and design decisions (ADRs): [SPEC.md](./SPEC.md).
 
@@ -34,7 +34,7 @@ The API container runs in production mode, so the session cookie is `Secure`. Ch
 1. Register, or log in.
 2. On **Map**, browse your places: search them, filter by category, and click a marker to see, edit or delete it.
 3. Add a place with the form, which fills in coordinates when you click the map. On a phone, use the **Add place** tab: pan the map under the crosshair and tap **Add here**.
-4. On **Import**, upload a ZIP containing one `.txt` file of locations. You can try [`samples/locations.zip`](./samples/locations.zip); the format is in [SPEC.md](./SPEC.md#txt-format).
+4. On **Import**, upload a ZIP containing one `.txt` file of locations. You can try uploading this file: [`samples/locations.zip`](./samples/locations.zip); the format is in [SPEC.md](./SPEC.md#txt-format).
 5. Log out from the rail (the tab bar on mobile).
 
 ## Mobile
