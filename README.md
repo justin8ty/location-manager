@@ -11,13 +11,15 @@ Specification and design decisions (ADRs): [SPEC.md](./SPEC.md).
 Requires Node.js 24+, pnpm 12 and Docker.
 
 ```bash
+git clone https://github.com/justin8ty/location-manager.git
+cd location-manager
 pnpm install
 cp .env.example .env
 ```
 
-Before proceed, set JWT_SECRET to a random string in `.env`. Generate one with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
+Before proceed, set JWT_SECRET to a random string in `.env`. Generate one with: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`
 
-Then start the database and API in Docker and run:
+Then start the database+API in Docker:
 
 ```bash
 docker compose up -d --build
